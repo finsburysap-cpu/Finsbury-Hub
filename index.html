@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finsbury Hub</title>
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+
+<div class="auth-wrap">
+
+  <div class="auth-brand">
+    <div class="brand-mark">FH</div>
+    <div class="brand-name">Finsbury Hub</div>
+    <div class="brand-tag">Operations Intelligence</div>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-card-title">Sign in</div>
+
+    <div id="login-error" class="alert alert-error" style="display:none"></div>
+
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="you@finsbury.co.ke" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn-primary" id="btn-login">
+      <span id="btn-login-text">Sign in</span>
+      <span id="btn-login-spinner" class="spinner" style="display:none"></span>
+    </button>
+  </div>
+
+  <div class="auth-footer">Finsbury Trading Ltd. &copy; 2025</div>
+
+</div>
+
+<script type="module">
+import { signIn, getSession } from './js/auth.js';
+
+// Redirect if already logged in
+const session = getSession();
+if (session) {
+  window.location.href = 'site-select.html';
+}
+
+const emailEl    = document.getElementById('email');
+const passEl     = document.getElementById('password');
+const btnEl      = document.getElementById('btn-login');
+const btnText    = document.getElementById('btn-login-text');
+const btnSpinner = document.getElementById('btn-login-spinner');
+const errorEl    = document.getElementById('login-error');
+
+async function doLogin() {
+  const email    = emailEl.value.trim();
+  const password = passEl.value;
+
+  if (!email || !password) {
+    showError('Please enter your email and password.');
+    return;
+  }
+
+  setLoading(true);
+  errorEl.style.display = 'none';
+
+  const result = await signIn(email, password);
+
+  if (result.success) {
+    window.location.href = 'site-select.html';
+  } else {
+    showError(result.error || 'Invalid email or password.');
+    setLoading(false);
+  }
+}
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.style.display = 'block';
+}
+
+function setLoading(loading) {
+  btnEl.disabled      = loading;
+  btnText.style.display    = loading ? 'none' : 'inline';
+  btnSpinner.style.display = loading ? 'inline-block' : 'none';
+}
+
+btnEl.addEventListener('click', doLogin);
+[emailEl, passEl].forEach(el => {
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
+</script>
+
+</body>
+</html>

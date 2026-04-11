@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select Site — Finsbury Hub</title>
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+
+<div class="auth-wrap">
+
+  <div class="auth-brand">
+    <div class="brand-mark">FH</div>
+    <div class="brand-name">Finsbury Hub</div>
+    <div class="brand-tag">Operations Intelligence</div>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-card-title">Select your site</div>
+    <div class="auth-card-sub">This will be your active site for this session.</div>
+
+    <div class="site-grid">
+      <div class="site-option" id="opt-Nairobi" onclick="selectSite('Nairobi')">
+        <div class="site-code">NBI</div>
+        <div class="site-label">Nairobi</div>
+        <div class="site-desc">NRB001 · NRB002 · NRB003 · NRB004</div>
+      </div>
+      <div class="site-option" id="opt-Mombasa" onclick="selectSite('Mombasa')">
+        <div class="site-code">MBA</div>
+        <div class="site-label">Mombasa</div>
+        <div class="site-desc">MSA001</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-enter" disabled onclick="enterHub()">
+      Enter Finsbury Hub
+    </button>
+
+    <button class="btn-ghost" onclick="signOutAndReturn()">Sign out</button>
+  </div>
+
+</div>
+
+<script type="module">
+import { getSession, signOut, setSessionSite } from './js/auth.js';
+
+const session = getSession();
+if (!session) {
+  window.location.href = 'index.html';
+}
+
+let chosen = null;
+
+window.selectSite = function(site) {
+  chosen = site;
+  document.querySelectorAll('.site-option').forEach(el => el.classList.remove('active'));
+  document.getElementById('opt-' + site).classList.add('active');
+  document.getElementById('btn-enter').disabled = false;
+  document.getElementById('btn-enter').textContent = `Enter Hub — ${site}`;
+};
+
+window.enterHub = function() {
+  if (!chosen) return;
+  setSessionSite(chosen);
+  window.location.href = 'hub.html';
+};
+
+window.signOutAndReturn = function() {
+  signOut();
+  window.location.href = 'index.html';
+};
+</script>
+
+</body>
+</html>

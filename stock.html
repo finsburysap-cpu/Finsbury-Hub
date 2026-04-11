@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Intelligence — Finsbury Hub</title>
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="appshell">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="hub.html" class="topbar-back">← Hub</a>
+      <div class="topbar-brand">Stock Intelligence</div>
+      <div class="site-pill" id="site-pill"></div>
+    </div>
+    <div class="topbar-right">
+      <div class="sync-status" id="sync-status">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span class="sync-label" id="sync-label">Loading...</span>
+        <button class="btn-refresh" id="btn-refresh" onclick="doRefresh()">
+          <span id="refresh-text">Refresh</span>
+          <span id="refresh-spinner" class="spinner" style="display:none"></span>
+        </button>
+      </div>
+      <button class="btn-ghost-sm" onclick="switchSite()">Switch site</button>
+      <button class="btn-ghost-sm" onclick="signOutAll()">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Metrics row -->
+  <div class="metrics-row" id="metrics-row">
+    <div class="metric-card">
+      <div class="metric-label">Items to reorder</div>
+      <div class="metric-value red" id="m-reorder">—</div>
+      <div class="metric-sub" id="m-reorder-sub">loading...</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Critical stock</div>
+      <div class="metric-value red" id="m-critical">—</div>
+      <div class="metric-sub">below 50% cover</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Slow moving</div>
+      <div class="metric-value amber" id="m-slow">—</div>
+      <div class="metric-sub">declining velocity</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Dead stock</div>
+      <div class="metric-value amber" id="m-dead">—</div>
+      <div class="metric-sub">no sales in 30 days</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab active" id="tab-replen" onclick="setTab('replen')">
+      Replenishment <span class="tab-badge" id="tc-replen">0</span>
+    </button>
+    <button class="tab" id="tab-slow" onclick="setTab('slow')">
+      Slow moving <span class="tab-badge" id="tc-slow">0</span>
+    </button>
+    <button class="tab" id="tab-dead" onclick="setTab('dead')">
+      Dead stock <span class="tab-badge" id="tc-dead">0</span>
+    </button>
+  </div>
+
+  <!-- Tab content -->
+  <div class="tab-content">
+
+    <!-- REPLENISHMENT TAB -->
+    <div id="view-replen" class="view active">
+      <div class="view-toolbar">
+        <div class="toolbar-left">
+          <div class="field-inline">
+            <label>Vendor</label>
+            <select id="vendor-select" onchange="onVendorChange()">
+              <option value="">All vendors</option>
+            </select>
+          </div>
+          <div class="field-inline">
+            <label>Show</label>
+            <select id="filter-select" onchange="renderReplen()">
+              <option value="needs">Needs ordering</option>
+              <option value="all">All items</option>
+            </select>
+          </div>
+          <input class="search-input" id="replen-search" placeholder="Search items..." oninput="renderReplen()">
+        </div>
+        <div class="toolbar-right">
+          <span class="order-summary" id="order-summary"></span>
+          <button class="btn-sm" onclick="exportReplen('xlsx')">Export Excel</button>
+          <button class="btn-sm" onclick="exportReplen('pdf')">Export PDF</button>
+        </div>
+      </div>
+      <div class="note-bar">Net sales = invoiced qty minus credit notes (ORIN/RIN1). Suggested qty uses 30-day rate if trend &lt; −20%, otherwise 90-day rate.</div>
+      <div class="table-wrap">
+        <table id="tbl-replen">
+          <thead>
+            <tr>
+              <th style="width:22%">Item</th>
+              <th style="width:8%">Group</th>
+              <th style="width:8%">Stock</th>
+              <th style="width:7%">Cover</th>
+              <th style="width:7%">Target</th>
+              <th style="width:10%">90d rate</th>
+              <th style="width:7%">Trend</th>
+              <th style="width:9%">Open PO</th>
+              <th style="width:11%">Suggested</th>
+              <th style="width:11%">Order qty</th>
+              <th style="width:8%">Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-replen"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SLOW MOVING TAB -->
+    <div id="view-slow" class="view">
+      <div class="view-toolbar">
+        <div class="toolbar-left">
+          <input class="search-input" id="slow-search" placeholder="Search items..." oninput="renderSlow()">
+        </div>
+        <div class="toolbar-right">
+          <button class="btn-sm" onclick="exportSlow()">Export Excel</button>
+        </div>
+      </div>
+      <div class="note-bar">Slow moving = 30-day net run rate below 50% of 90-day rate, or cover exceeds 2× supplier stock holding days.</div>
+      <div class="table-wrap">
+        <table id="tbl-slow">
+          <thead>
+            <tr>
+              <th style="width:22%">Item</th>
+              <th style="width:9%">Group</th>
+              <th style="width:8%">Stock</th>
+              <th style="width:7%">Cover</th>
+              <th style="width:7%">Target</th>
+              <th style="width:10%">90d rate</th>
+              <th style="width:10%">30d rate</th>
+              <th style="width:8%">Trend</th>
+              <th style="width:11%">Reason</th>
+              <th style="width:8%">Vendor</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-slow"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DEAD STOCK TAB -->
+    <div id="view-dead" class="view">
+      <div class="view-toolbar">
+        <div class="toolbar-left">
+          <input class="search-input" id="dead-search" placeholder="Search items..." oninput="renderDead()">
+        </div>
+        <div class="toolbar-right">
+          <button class="btn-sm" onclick="exportDead()">Export Excel</button>
+        </div>
+      </div>
+      <div class="note-bar">Dead stock = zero net sales in last 30 days with stock on hand &gt; 0. Returns column shows credit note activity despite no forward sales.</div>
+      <div class="table-wrap">
+        <table id="tbl-dead">
+          <thead>
+            <tr>
+              <th style="width:24%">Item</th>
+              <th style="width:9%">Group</th>
+              <th style="width:9%">Stock</th>
+              <th style="width:12%">Last sale</th>
+              <th style="width:10%">Days inactive</th>
+              <th style="width:10%">90d returns</th>
+              <th style="width:10%">Vendor</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-dead"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /tab-content -->
+
+</div><!-- /appshell -->
+
+<!-- Switch site modal -->
+<div class="modal-overlay" id="switch-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Switch site?</div>
+    <div class="modal-body" id="switch-modal-body"></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="document.getElementById('switch-modal').style.display='none'">Cancel</button>
+      <button class="btn-primary-sm" onclick="confirmSwitch()">Switch</button>
+    </div>
+  </div>
+</div>
+
+<!-- Warehouse detail modal -->
+<div class="modal-overlay" id="whs-modal" style="display:none">
+  <div class="modal modal-wide">
+    <div class="modal-title" id="whs-modal-title">Stock by warehouse</div>
+    <div id="whs-modal-body"></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="document.getElementById('whs-modal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/stock.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finsbury Hub</title>
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="appshell">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">Finsbury Hub</div>
+      <div class="site-pill" id="site-pill"></div>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="topbar-user"></span>
+      <button class="btn-ghost-sm" onclick="switchSite()">Switch site</button>
+      <button class="btn-ghost-sm" onclick="signOutAll()">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Hub home -->
+  <main class="hub-home">
+    <div class="hub-greeting" id="hub-greeting"></div>
+    <div class="hub-sub">What would you like to work on?</div>
+
+    <div class="module-grid" id="module-grid">
+
+      <div class="module-card" onclick="goTo('stock.html')">
+        <div class="module-icon stock-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+            <line x1="12" y1="12" x2="12" y2="16"/>
+            <line x1="10" y1="14" x2="14" y2="14"/>
+          </svg>
+        </div>
+        <div class="module-info">
+          <div class="module-name">Stock Intelligence</div>
+          <div class="module-desc">Replenishment, slow moving &amp; dead stock analysis</div>
+        </div>
+        <div class="module-arrow">→</div>
+      </div>
+
+      <div class="module-card module-card-soon">
+        <div class="module-icon ar-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <div class="module-info">
+          <div class="module-name">AR Invoice Tracking <span class="badge-soon">Coming soon</span></div>
+          <div class="module-desc">Invoice status, aging, and collections overview</div>
+        </div>
+        <div class="module-arrow muted">→</div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<!-- Switch site modal -->
+<div class="modal-overlay" id="switch-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Switch site?</div>
+    <div class="modal-body" id="switch-modal-body"></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary-sm" onclick="confirmSwitch()">Switch</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { getSession, signOut, setSessionSite } from './js/auth.js';
+
+const session = getSession();
+if (!session) { window.location.href = 'index.html'; }
+if (!session.site) { window.location.href = 'site-select.html'; }
+
+const site = session.site;
+const name = session.name || session.email.split('@')[0];
+const hour = new Date().getHours();
+const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+document.getElementById('site-pill').textContent    = site;
+document.getElementById('topbar-user').textContent  = name;
+document.getElementById('hub-greeting').textContent = `${greeting}, ${name}.`;
+
+window.goTo = function(page) {
+  window.location.href = page;
+};
+
+window.switchSite = function() {
+  const target = site === 'Nairobi' ? 'Mombasa' : 'Nairobi';
+  document.getElementById('switch-modal-body').innerHTML =
+    `You are on <strong>${site}</strong>. Switch to <strong>${target}</strong>?`;
+  document.getElementById('switch-modal').style.display = 'flex';
+};
+
+window.closeModal = function() {
+  document.getElementById('switch-modal').style.display = 'none';
+};
+
+window.confirmSwitch = function() {
+  const target = site === 'Nairobi' ? 'Mombasa' : 'Nairobi';
+  setSessionSite(target);
+  window.location.href = 'hub.html';
+};
+
+window.signOutAll = function() {
+  signOut();
+  window.location.href = 'index.html';
+};
+</script>
+
+</body>
+</html>
