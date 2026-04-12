@@ -198,10 +198,15 @@ function renderReplen() {
   const filter  = document.getElementById('filter-select').value;
   const search  = document.getElementById('replen-search').value.toLowerCase();
 
-  let rows = allData.filter(r => !r.is_dead_stock && !r.is_slow_moving);
+// Start with base pool depending on filter
+  let rows;
+  if (filter === 'all') {
+    rows = allData.slice(); // all items
+  } else {
+    rows = allData.filter(r => r.needs_ordering); // needs ordering only
+  }
 
-  if (filter === 'needs') rows = rows.filter(r => r.needs_ordering);
-  if (filter === 'all') rows = allData.filter(r => !r.is_dead_stock);
+  // Then apply vendor and search on top
   if (vendor) rows = rows.filter(r => r.vendor_name === vendor);
   if (search) rows = rows.filter(r =>
     r.item_name.toLowerCase().includes(search) ||
