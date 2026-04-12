@@ -198,10 +198,11 @@ function renderReplen() {
   const filter  = document.getElementById('filter-select').value;
   const search  = document.getElementById('replen-search').value.toLowerCase();
 
-  let rows = allData.filter(r => !r.is_dead_stock);
+  let rows = allData.filter(r => !r.is_dead_stock && !r.is_slow_moving);
 
-  if (vendor) rows = rows.filter(r => r.vendor_name === vendor);
   if (filter === 'needs') rows = rows.filter(r => r.needs_ordering);
+  if (filter === 'all') rows = allData.filter(r => !r.is_dead_stock);
+  if (vendor) rows = rows.filter(r => r.vendor_name === vendor);
   if (search) rows = rows.filter(r =>
     r.item_name.toLowerCase().includes(search) ||
     (r.item_code || '').toLowerCase().includes(search)
@@ -255,8 +256,13 @@ function renderReplen() {
       <td>${trendHtml(r.trend_pct)}</td>
       <td style="color:var(--text-muted);font-family:'DM Mono',monospace">${r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—'}</td>
       <td>
-        <span style="font-family:'DM Mono',monospace;font-weight:500">${r.suggest_qty_pcs > 0 ? fmt(r.suggest_qty_pcs) + ' pcs' : '—'}</span>
-        ${suggestCtn ? `<br><small style="color:var(--text-muted)">${suggestCtn}</small>` : ''}
+        ${r.suggest_qty_pcs > 0
+          ? `<span style="font-family:'DM Mono',monospace;font-weight:500">${fmt(r.suggest_qty_pcs)} pcs</span>
+             ${suggestCtn ? `<br><small style="color:var(--text-muted)">${suggestCtn}</small>` : ''}`
+          : r.needs_ordering && (!r.daily_rate_90d || r.daily_rate_90d === 0)
+          ? `<span style="color:var(--amber);font-size:11px">No sales history</span>`
+          : `<span style="color:var(--text-muted)">—</span>`
+        }
       </td>
       <td>
         <div class="order-cell">
