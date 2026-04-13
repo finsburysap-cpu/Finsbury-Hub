@@ -160,6 +160,7 @@ function populateVendorDropdown() {
 }
 
 window.onVendorChange = function() { renderReplen(); };
+window.onFilterChange = function() { renderReplen(); };
 
 // ── Tab switching ──────────────────────────────────
 window.setTab = function(tab) {
@@ -219,14 +220,18 @@ function renderReplen() {
     return (order[a.stock_status] ?? 3) - (order[b.stock_status] ?? 3);
   });
 
-  document.getElementById('tc-replen').textContent = rows.length;
+  // Tab count always shows needs-ordering total regardless of current filter
+  const needsCount = allData.filter(r => r.needs_ordering).length;
+  document.getElementById('tc-replen').textContent = needsCount;
+  // Row count shown in toolbar
+  updateOrderSummary(rows.length);
 
   const tbody = document.getElementById('tbody-replen');
   tbody.innerHTML = '';
 
   if (rows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="11" class="empty-state">No items found</td></tr>`;
-    updateOrderSummary();
+    updateOrderSummary(rows.length);
     return;
   }
 
@@ -445,10 +450,17 @@ window.onCtnInput = function(ek, key, ctnSize) {
   updateOrderSummary();
 };
 
-function updateOrderSummary() {
+function updateOrderSummary(rowCount) {
   const count = Object.keys(orderQtys).length;
-  document.getElementById('order-summary').textContent =
-    count > 0 ? `${count} item${count !== 1 ? 's' : ''} with quantities` : '';
+  const filter = document.getElementById('filter-select').value;
+  let summary = '';
+  if (rowCount != null) {
+    summary = `${rowCount.toLocaleString()} items shown`;
+  }
+  if (count > 0) {
+    summary += ` · ${count} with quantities`;
+  }
+  document.getElementById('order-summary').textContent = summary;
 }
 
 // ── Export ─────────────────────────────────────────
