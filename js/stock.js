@@ -1,4 +1,4 @@
-// js/stock.js
+function renderReplen() {// js/stock.js
 // Stock Intelligence module — all data loading and rendering
 
 import { getSession, signOut, setSessionSite } from './auth.js';
@@ -200,7 +200,7 @@ function updateMetrics() {
 }
 
 // ── Replenishment tab ──────────────────────────────
-function renderReplen() {
+window.renderReplen = function() {
   
 // Read current filter values fresh each time
   const vendor = (document.getElementById('vendor-select').value || '').trim();
@@ -307,7 +307,7 @@ function renderReplen() {
 }
 
 // ── Slow moving tab ────────────────────────────────
-function renderSlow() {
+window.renderSlow = function() {
   const search = document.getElementById('slow-search').value.toLowerCase();
   let rows = allData.filter(r => r.is_slow_moving);
   if (search) rows = rows.filter(r =>
@@ -349,7 +349,7 @@ function renderSlow() {
 }
 
 // ── Dead stock tab ─────────────────────────────────
-function renderDead() {
+window.renderDead = function() {
   const search = document.getElementById('dead-search').value.toLowerCase();
   let rows = allData.filter(r => r.is_dead_stock);
   if (search) rows = rows.filter(r =>
