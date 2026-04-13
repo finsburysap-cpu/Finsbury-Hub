@@ -824,3 +824,10 @@ tr:hover td { background: rgba(45,125,210,0.03); }
   justify-content: flex-end;
   gap: 8px;
 }
+.btn-apply {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  font-weight: 500;
+}
+.btn-apply:hover { background: #2268bb; border-color: #2268bb; color: white; }

@@ -145,8 +145,12 @@ window.doRefresh = async function() {
 function populateVendorDropdown() {
   const sel = document.getElementById('vendor-select');
   const cur = sel.value;
+
+  // Get vendors based on ALL data not just filtered
   const vendors = [...new Set(
-    allData.filter(r => r.vendor_name).map(r => r.vendor_name)
+    allData
+      .filter(r => r.vendor_name && r.vendor_name.trim() !== '')
+      .map(r => r.vendor_name.trim())
   )].sort();
 
   sel.innerHTML = '<option value="">All vendors</option>';
@@ -157,6 +161,8 @@ function populateVendorDropdown() {
     if (v === cur) opt.selected = true;
     sel.appendChild(opt);
   });
+
+  console.log(`Vendors loaded: ${vendors.length}`);
 }
 
 window.onVendorChange = function() { renderReplen(); };
@@ -195,24 +201,31 @@ function updateMetrics() {
 
 // ── Replenishment tab ──────────────────────────────
 function renderReplen() {
-  const vendor  = document.getElementById('vendor-select').value;
-  const filter  = document.getElementById('filter-select').value;
-  const search  = document.getElementById('replen-search').value.toLowerCase();
+  
+// Read current filter values fresh each time
+  const vendor = (document.getElementById('vendor-select').value || '').trim();
+  const filter = document.getElementById('filter-select').value;
+  const search = (document.getElementById('replen-search').value || '').toLowerCase().trim();
 
-// Start with base pool depending on filter
-  let rows;
-  if (filter === 'all') {
-    rows = allData.slice(); // all items
-  } else {
-    rows = allData.filter(r => r.needs_ordering); // needs ordering only
+  console.log(`Rendering replen — filter:${filter} vendor:"${vendor}" search:"${search}"`);
+
+  // Base pool
+  let rows = filter === 'all'
+    ? allData.slice()
+    : allData.filter(r => r.needs_ordering);
+
+  // Vendor filter
+  if (vendor) {
+    rows = rows.filter(r => (r.vendor_name || '').trim() === vendor);
   }
 
-  // Then apply vendor and search on top
-  if (vendor) rows = rows.filter(r => r.vendor_name === vendor);
-  if (search) rows = rows.filter(r =>
-    r.item_name.toLowerCase().includes(search) ||
-    (r.item_code || '').toLowerCase().includes(search)
-  );
+  // Search filter
+  if (search) {
+    rows = rows.filter(r =>
+      r.item_name.toLowerCase().includes(search) ||
+      (r.item_code || '').toLowerCase().includes(search)
+    );
+  }
 
   // Sort: critical first, then low, then ok
   rows.sort((a, b) => {
