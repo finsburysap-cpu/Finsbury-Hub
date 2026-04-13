@@ -37,7 +37,8 @@ async function loadData() {
     const { data: metrics, error: e1 } = await sb
       .from('stock_metrics')
       .select('*')
-      .eq('site_name', site);
+      .eq('site_name', site)
+      .limit(5000);
     if (e1) throw e1;
     allData = metrics || [];
 
@@ -47,7 +48,8 @@ async function loadData() {
         .from('stock_on_hand_detail')
         .select('item_code, whs_code, whs_name, on_hand')
         .eq('site_name', site)
-        .in('item_code', itemCodes);
+        .in('item_code', itemCodes)
+        .limit(5000);
       if (!e2 && detail) {
         whsDetail = {};
         detail.forEach(r => {
