@@ -60,12 +60,11 @@ async function loadData() {
     }
 
     const { data: syncLog } = await sb
-      .from('sync_log')
-      .select('run_at')
-      .eq('status', 'success')
-      .eq('module', 'stock')
-      .order('run_at', { ascending: false })
-      .limit(1);
+  .from('sync_log')
+  .select('run_at')
+  .eq('status', 'success')
+  .order('run_at', { ascending: false })
+  .limit(1);
     lastSynced = syncLog && syncLog.length > 0 ? new Date(syncLog[0].run_at) : null;
 
     populateVendorDropdown();
