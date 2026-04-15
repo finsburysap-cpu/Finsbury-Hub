@@ -268,7 +268,7 @@ window.renderSlow = function() {
       '<td style="color:var(--text-secondary)">' + (r.grp_name || '—') + '</td>' +
       '<td><span style="font-family:\'DM Mono\',monospace">' + fmt(r.stock_on_hand) + ' pcs</span>' +
   (r.pcs_per_ctn > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / r.pcs_per_ctn).toFixed(1) + ' ctn</small>' : '') +
-  '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
+ '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + r.item_code + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
       '<td style="color:var(--amber);font-weight:500">' + (r.cover_days != null ? r.cover_days + 'd' : '—') + '</td>' +
       '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
