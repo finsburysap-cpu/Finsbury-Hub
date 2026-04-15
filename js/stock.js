@@ -267,7 +267,7 @@ window.renderSlow = function() {
       '<td title="' + r.item_name + '" style="font-weight:500;white-space:normal;line-height:1.4">' + r.item_name + '</td>' +
       '<td style="color:var(--text-secondary)">' + (r.grp_name || '—') + '</td>' +
       '<td><span style="font-family:\'DM Mono\',monospace">' + fmt(r.stock_on_hand) + ' pcs</span>' +
-  (ctn > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(1) + ' ctn</small>' : '') +
+  (r.pcs_per_ctn > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / r.pcs_per_ctn).toFixed(1) + ' ctn</small>' : '') +
   '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
       '<td style="color:var(--amber);font-weight:500">' + (r.cover_days != null ? r.cover_days + 'd' : '—') + '</td>' +
       '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
