@@ -306,9 +306,9 @@ window.renderDead = function() {
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td title="' + r.item_name + '" style="font-weight:500;white-space:normal;line-height:1.4">' + r.item_name + '</td>' +
-      '<td style="color:var(--text-secondary)">' + (r.grp_name || '—') + '</td>' +
-      '<td><span style="font-family:\'DM Mono\',monospace">' + fmt(r.stock_on_hand) + '</span>' +
-        '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + r.item_code + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
+'<td><span style="font-family:\'DM Mono\',monospace">' + fmt(r.stock_on_hand) + ' pcs</span>' +
+  (r.pcs_per_ctn > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / r.pcs_per_ctn).toFixed(1) + ' ctn</small>' : '') +
+  '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + r.item_code + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
       '<td style="color:var(--text-secondary)">' + lastSale + '</td>' +
       '<td style="color:var(--red);font-weight:500;font-family:\'DM Mono\',monospace">' + (daysInactive != null ? daysInactive + 'd' : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace;color:var(--text-secondary)">' + fmt(r.total_returns_90d) + ' pcs</td>' +
