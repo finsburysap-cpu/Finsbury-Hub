@@ -232,7 +232,12 @@ if (r.suggest_qty_pcs > 0) {
       '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
       '<td>' + trendHtml(r.trend_pct) + '</td>' +
-      '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace;font-size:12px">' +
+  (r.last_purchase_price
+    ? (r.last_purchase_currency || '') + ' ' + Number(r.last_purchase_price).toFixed(2) +
+      (r.last_purchase_date ? '<br><small style="color:var(--text-muted)">' + new Date(r.last_purchase_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + '</small>' : '')
+    : '—') +
+'</td>' +
       '<td>' + suggestCell + '</td>' +
       '<td><div class="order-cell">' +
         '<input type="number" class="qty-input' + (savedPcs ? ' filled' : '') + '" id="pcs-' + ek + '" placeholder="pcs" value="' + savedPcs + '" min="0" step="1" oninput="onPcsInput(\'' + ek + '\',\'' + key + '\',' + ctn + ')">' +
@@ -258,7 +263,7 @@ window.renderSlow = function() {
   var tbody = document.getElementById('tbody-slow');
   tbody.innerHTML = '';
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No slow moving items</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty-state">No slow moving items</td></tr>';
     return;
   }
   rows.forEach(function(r) {
