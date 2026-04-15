@@ -224,7 +224,7 @@ if (r.suggest_qty_pcs > 0) {
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td title="' + r.item_name + '" style="font-weight:500;white-space:normal;line-height:1.4">' + r.item_name + '</td>' +
-      '<td style="color:var(--text-secondary)">' + (r.grp_name || '—') + '</td>' +
+      
       '<td><span style="font-family:\'DM Mono\',monospace">' + (r.stock_on_hand != null ? r.stock_on_hand.toFixed(2) : '—') + ' ' + (r.inv_uom || 'pcs') + '</span>' +
   (ctn > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
 '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
@@ -403,7 +403,7 @@ window.exportReplen = function() {
     var oqPcs  = orderQtys[r.item_code] || '';
     var oqCtn  = oqPcs && r.pcs_per_ctn ? Math.ceil(oqPcs / r.pcs_per_ctn) : '';
     var sugCtn = r.suggest_qty_pcs && r.pcs_per_ctn ? Math.ceil(r.suggest_qty_pcs / r.pcs_per_ctn) : '';
-    csvRows.push([r.item_code,'"'+r.item_name+'"',r.grp_name||'',r.vendor_name||'',r.stock_on_hand,r.cover_days||'',r.target_days||'',r.daily_rate_90d?r.daily_rate_90d.toFixed(2):'',r.trend_pct||'',r.open_po_qty||0,r.suggest_qty_pcs||'',sugCtn,oqPcs,oqCtn,r.stock_status].join(','));
+    csvRows.push([r.item_code,'"'+r.item_name+'"',r.vendor_name||'',r.stock_on_hand,r.cover_days||'',r.target_days||'',r.daily_rate_90d?r.daily_rate_90d.toFixed(2):'',r.trend_pct||'',r.open_po_qty||0,r.suggest_qty_pcs||'',sugCtn,oqPcs,oqCtn,r.stock_status].join(','));
   });
   downloadCsv(csvRows.join('\n'), 'replenishment_' + site + '_' + today() + '.csv');
 };
@@ -412,7 +412,7 @@ window.exportSlow = function() {
   var rows    = allData.filter(function(r) { return r.is_slow_moving; });
   var csvRows = [['Item code','Item name','Group','Stock','Cover (days)','Target (days)','90d rate','30d rate','Trend %','Vendor'].join(',')];
   rows.forEach(function(r) {
-    csvRows.push([r.item_code,'"'+r.item_name+'"',r.grp_name||'',r.stock_on_hand,r.cover_days||'',r.target_days||'',r.daily_rate_90d?r.daily_rate_90d.toFixed(2):'',r.daily_rate_30d?r.daily_rate_30d.toFixed(2):'',r.trend_pct||'',r.vendor_name||''].join(','));
+    csvRows.push([r.item_code,'"'+r.item_name+'"',r.stock_on_hand,r.cover_days||'',r.target_days||'',r.daily_rate_90d?r.daily_rate_90d.toFixed(2):'',r.daily_rate_30d?r.daily_rate_30d.toFixed(2):'',r.trend_pct||'',r.vendor_name||''].join(','));
   });
   downloadCsv(csvRows.join('\n'), 'slow_moving_' + site + '_' + today() + '.csv');
 };
@@ -421,7 +421,7 @@ window.exportDead = function() {
   var rows    = allData.filter(function(r) { return r.is_dead_stock; });
   var csvRows = [['Item code','Item name','Group','Stock','Last sale','90d returns','Vendor'].join(',')];
   rows.forEach(function(r) {
-    csvRows.push([r.item_code,'"'+r.item_name+'"',r.grp_name||'',r.stock_on_hand,r.last_sale_date||'',r.total_returns_90d||0,r.vendor_name||''].join(','));
+    csvRows.push([r.item_code,'"'+r.item_name+'"',r.stock_on_hand,r.last_sale_date||'',r.total_returns_90d||0,r.vendor_name||''].join(','));
   });
   downloadCsv(csvRows.join('\n'), 'dead_stock_' + site + '_' + today() + '.csv');
 };
