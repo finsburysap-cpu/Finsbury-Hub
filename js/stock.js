@@ -212,14 +212,14 @@ window.renderReplen = function() {
     var ek = key.replace(/[^a-zA-Z0-9]/g, '_');
 
     var suggestCell = '';
-    if (r.suggest_qty_pcs > 0) {
-      suggestCell = '<span style="font-family:\'DM Mono\',monospace;font-weight:500">' + fmt(r.suggest_qty_pcs) + ' pcs</span>' +
-        (suggestCtn ? '<br><small style="color:var(--text-muted)">' + suggestCtn + '</small>' : '');
-    } else if (r.needs_ordering && (!r.daily_rate_90d || r.daily_rate_90d === 0)) {
-      suggestCell = '<span style="color:var(--amber);font-size:11px">No sales history</span>';
-    } else {
-      suggestCell = '<span style="color:var(--text-muted)">—</span>';
-    }
+if (r.suggest_qty_pcs > 0) {
+  suggestCell = '<span style="font-family:\'DM Mono\',monospace;font-weight:500">' + r.suggest_qty_pcs.toFixed(2) + ' ' + (r.inv_uom || 'pcs') + '</span>' +
+    (suggestCtn ? '<br><small style="color:var(--text-muted)">' + suggestCtn + '</small>' : '');
+} else if (r.needs_ordering && (!r.daily_rate_90d || r.daily_rate_90d === 0)) {
+  suggestCell = '<span style="color:var(--amber);font-size:11px">No sales history</span>';
+} else {
+  suggestCell = '<span style="color:var(--text-muted)">—</span>';
+}
 
     var tr = document.createElement('tr');
     tr.innerHTML =
