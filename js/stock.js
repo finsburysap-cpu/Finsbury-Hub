@@ -440,6 +440,9 @@ var vendorLabel = vendor || 'All Vendors';
   ['A1','A2','A3','A5','B5','C5'].forEach(function(cell) {
     if (ws[cell]) ws[cell].s = { font: { bold: true } };
   });
+XLSX.utils.book_append_sheet(wb, ws, 'Order');
+  XLSX.writeFile(wb, 'order_' + site + '_' + today() + '.xlsx');
+};
 
 // ── Site switching ─────────────────────────────────
 window.switchSite = function() {
