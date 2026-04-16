@@ -397,34 +397,43 @@ window.exportReplen = function() {
   var filter = document.getElementById('filter-select').value;
   var rows   = filter === 'all' ? allData.slice() : allData.filter(function(r) { return r.needs_ordering; });
   if (vendor) rows = rows.filter(function(r) { return (r.vendor_name || '').trim() === vendor; });
-  var withQty    = rows.filter(function(r) { return orderQtys[r.item_code]; });
-  var exportRows = withQty.length > 0 ? withQty : rows;
-  var csvRows = [['Item code','Item name','Group','Vendor','Stock on hand','Cover (days)','Target (days)','90d rate','Trend %','Open PO','Suggested (pcs)','Suggested (ctn)','Order qty (pcs)','Order qty (ctn)','Status'].join(',')];
+
+  var exportRows = rows.filter(function(r) { return orderQtys[r.item_code]; });
+  if (exportRows.length === 0) {
+    alert('No order quantities entered. Please enter quantities before exporting.');
+    return;
+  }
+
+  // Build data array
+  var wsData = [['Item Name', 'Order Qty (Ctn)', 'Order Qty (Pcs)']];
   exportRows.forEach(function(r) {
-    var oqPcs  = orderQtys[r.item_code] || '';
-    var oqCtn  = oqPcs && r.pcs_per_ctn ? Math.ceil(oqPcs / r.pcs_per_ctn) : '';
-    var sugCtn = r.suggest_qty_pcs && r.pcs_per_ctn ? Math.ceil(r.suggest_qty_pcs / r.pcs_per_ctn) : '';
-    csvRows.push([r.item_code,'"'+r.item_name+'"',r.vendor_name||'',r.stock_on_hand,r.cover_days||'',r.target_days||'',r.daily_rate_90d?r.daily_rate_90d.toFixed(2):'',r.trend_pct||'',r.open_po_qty||0,r.suggest_qty_pcs||'',sugCtn,oqPcs,oqCtn,r.stock_status].join(','));
+    var oqPcs = orderQtys[r.item_code];
+    var oqCtn = (oqPcs && r.pcs_per_ctn) ? parseFloat((oqPcs / r.pcs_per_ctn).toFixed(2)) : '';
+    wsData.push([
+      r.item_name,
+      oqCtn,
+      oqPcs || ''
+    ]);
   });
-  downloadCsv(csvRows.join('\n'), 'replenishment_' + site + '_' + today() + '.csv');
-};
 
-window.exportSlow = function() {
-  var rows    = allData.filter(function(r) { return r.is_slow_moving; });
-  var csvRows = [['Item code','Item name','Group','Stock','Cover (days)','Target (days)','90d rate','30d rate','Trend %','Vendor'].join(',')];
-  rows.forEach(function(r) {
-    csvRows.push([r.item_code,'"'+r.item_name+'"',r.stock_on_hand,r.cover_days||'',r.target_days||'',r.daily_rate_90d?r.daily_rate_90d.toFixed(2):'',r.daily_rate_30d?r.daily_rate_30d.toFixed(2):'',r.trend_pct||'',r.vendor_name||''].join(','));
-  });
-  downloadCsv(csvRows.join('\n'), 'slow_moving_' + site + '_' + today() + '.csv');
-};
+  // Create workbook
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
 
-window.exportDead = function() {
-  var rows    = allData.filter(function(r) { return r.is_dead_stock; });
-  var csvRows = [['Item code','Item name','Group','Stock','Last sale','90d returns','Vendor'].join(',')];
-  rows.forEach(function(r) {
-    csvRows.push([r.item_code,'"'+r.item_name+'"',r.stock_on_hand,r.last_sale_date||'',r.total_returns_90d||0,r.vendor_name||''].join(','));
+  // Column widths
+  ws['!cols'] = [
+    { wch: 45 },  // Item Name
+    { wch: 15 },  // Order Qty (Ctn)
+    { wch: 15 },  // Order Qty (Pcs)
+  ];
+
+  // Style header row bold
+  ['A1','B1','C1'].forEach(function(cell) {
+    if (ws[cell]) ws[cell].s = { font: { bold: true } };
   });
-  downloadCsv(csvRows.join('\n'), 'dead_stock_' + site + '_' + today() + '.csv');
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Order');
+  XLSX.writeFile(wb, 'order_' + site + '_' + today() + '.xlsx');
 };
 
 // ── Site switching ─────────────────────────────────
