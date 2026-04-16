@@ -403,16 +403,25 @@ window.exportReplen = function() {
     alert('No order quantities entered. Please enter quantities before exporting.');
     return;
   }
+var vendorLabel = vendor || 'All Vendors';
+  var dateLabel   = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 
-  // Build data array
-  var wsData = [['Item Name', 'Order Qty (Ctn)', 'Order Qty (Pcs)']];
+  // Build data array with header
+  var wsData = [
+    ['FINSBURY TRADING LTD'],
+    ['Date: ' + dateLabel],
+    ['Vendor: ' + vendorLabel],
+    [],
+    ['Item Name', 'Order Qty (Ctn)', 'Order Qty (Pcs)']
+  ];
+
   exportRows.forEach(function(r) {
     var oqPcs = orderQtys[r.item_code];
     var oqCtn = (oqPcs && r.pcs_per_ctn) ? parseFloat((oqPcs / r.pcs_per_ctn).toFixed(2)) : '';
     wsData.push([
       r.item_name,
       oqCtn,
-      oqPcs || ''
+      oqPcs
     ]);
   });
 
