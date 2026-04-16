@@ -232,6 +232,7 @@ if (r.suggest_qty_pcs > 0) {
       '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
       '<td>' + trendHtml(r.trend_pct) + '</td>' +
+	  '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace;font-size:12px">' +
   (r.last_purchase_price
     ? (r.last_purchase_currency || '') + ' ' + Number(r.last_purchase_price).toFixed(2) +
