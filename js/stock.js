@@ -183,10 +183,15 @@ window.renderReplen = function() {
   });
 
   rows.sort(function(a, b) {
-    var order = { critical: 0, low: 1, ok: 2 };
-    return (order[a.stock_status] !== undefined ? order[a.stock_status] : 3) -
-           (order[b.stock_status] !== undefined ? order[b.stock_status] : 3);
-  });
+  var vendorA = (a.vendor_name || '').toLowerCase();
+  var vendorB = (b.vendor_name || '').toLowerCase();
+  if (vendorA < vendorB) return -1;
+  if (vendorA > vendorB) return 1;
+  // Same vendor — sort by cover days ascending (most urgent first)
+  var coverA = a.cover_days != null ? a.cover_days : 9999;
+  var coverB = b.cover_days != null ? b.cover_days : 9999;
+  return coverA - coverB;
+});
 
   document.getElementById('tc-replen').textContent = allData.filter(function(r) { return r.needs_ordering; }).length;
 
