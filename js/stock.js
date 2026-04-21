@@ -265,6 +265,15 @@ window.renderSlow = function() {
     return r.item_name.toLowerCase().indexOf(search) > -1 ||
            (r.vendor_name || '').toLowerCase().indexOf(search) > -1;
   });
+  rows.sort(function(a, b) {
+    var vendorA = (a.vendor_name || '').toLowerCase();
+    var vendorB = (b.vendor_name || '').toLowerCase();
+    if (vendorA < vendorB) return -1;
+    if (vendorA > vendorB) return 1;
+    var coverA = a.cover_days != null ? a.cover_days : 9999;
+    var coverB = b.cover_days != null ? b.cover_days : 9999;
+    return coverA - coverB;
+  });
   document.getElementById('tc-slow').textContent = rows.length;
   var tbody = document.getElementById('tbody-slow');
   tbody.innerHTML = '';
@@ -299,7 +308,15 @@ window.renderDead = function() {
     return r.item_name.toLowerCase().indexOf(search) > -1 ||
            (r.vendor_name || '').toLowerCase().indexOf(search) > -1;
   });
-  rows.sort(function(a, b) { return (b.cover_days || 0) - (a.cover_days || 0); });
+  rows.sort(function(a, b) {
+    var vendorA = (a.vendor_name || '').toLowerCase();
+    var vendorB = (b.vendor_name || '').toLowerCase();
+    if (vendorA < vendorB) return -1;
+    if (vendorA > vendorB) return 1;
+    var coverA = a.cover_days != null ? a.cover_days : 0;
+    var coverB = b.cover_days != null ? b.cover_days : 0;
+    return coverB - coverA;
+  });
   document.getElementById('tc-dead').textContent = rows.length;
   var tbody = document.getElementById('tbody-dead');
   tbody.innerHTML = '';
