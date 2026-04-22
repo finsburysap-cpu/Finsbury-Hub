@@ -130,11 +130,11 @@ window.doRefresh = async function() {
 
   try {
     // Set the sync_requested flag in Supabase
-    await sb.table('sync_control').update({
-      sync_requested: true,
-      requested_at:   new Date().toISOString(),
-      requested_by:   session.email || 'user',
-    }).eq('id', 1);
+    await sb.from('sync_control').update({
+  sync_requested: true,
+  requested_at:   new Date().toISOString(),
+  requested_by:   session.email || 'user',
+}).eq('id', 1);
 
     document.getElementById('sync-label').textContent = 'Syncing from SAP...';
 
