@@ -241,174 +241,184 @@ function updateMetrics() {
 }
 
 // ── Replenishment tab ──────────────────────────────
-function renderReplen() {
-  const vendor  = document.getElementById('vendor-select').value;
-  const filter  = document.getElementById('filter-select').value;
-  const search  = document.getElementById('replen-search').value.toLowerCase();
+window.renderReplen = function() {
+  var vendor = (document.getElementById('vendor-select').value || '').trim();
+  var filter = document.getElementById('filter-select').value;
+  var search = (document.getElementById('replen-search').value || '').toLowerCase().trim();
 
-  let rows = allData.filter(r => !r.is_dead_stock);
+  var rows = filter === 'all' ? allData.slice() : allData.filter(function(r) { return r.needs_ordering; });
+  if (vendor) rows = rows.filter(function(r) { return (r.vendor_name || '').trim() === vendor; });
+  if (search) rows = rows.filter(function(r) {
+    return r.item_name.toLowerCase().indexOf(search) > -1 ||
+           (r.item_code || '').toLowerCase().indexOf(search) > -1;
+  });
 
-  if (vendor) rows = rows.filter(r => r.vendor_name === vendor);
-  if (filter === 'needs') rows = rows.filter(r => r.needs_ordering);
-  if (search) rows = rows.filter(r =>
-    r.item_name.toLowerCase().includes(search) ||
-    (r.item_code || '').toLowerCase().includes(search)
-  );
+  rows.sort(function(a, b) {
+    var vendorA = (a.vendor_name || '').toLowerCase();
+    var vendorB = (b.vendor_name || '').toLowerCase();
+    if (vendorA < vendorB) return -1;
+    if (vendorA > vendorB) return 1;
+    var coverA = a.cover_days != null ? a.cover_days : 9999;
+    var coverB = b.cover_days != null ? b.cover_days : 9999;
+    return coverA - coverB;
+  });
 
-  // Sort: critical first, then low, then ok
- rows.sort(function(a, b) {
-  var vendorA = (a.vendor_name || '').toLowerCase();
-  var vendorB = (b.vendor_name || '').toLowerCase();
-  if (vendorA < vendorB) return -1;
-  if (vendorA > vendorB) return 1;
-  // Same vendor — sort by cover days ascending (most urgent first)
-  var coverA = a.cover_days != null ? a.cover_days : 9999;
-  var coverB = b.cover_days != null ? b.cover_days : 9999;
-  return coverA - coverB;
-});
+  document.getElementById('tc-replen').textContent = allData.filter(function(r) { return r.needs_ordering; }).length;
 
-  document.getElementById('tc-replen').textContent = rows.length;
-
-  const tbody = document.getElementById('tbody-replen');
+  var tbody = document.getElementById('tbody-replen');
   tbody.innerHTML = '';
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">No items found</td></tr>`;
-    updateOrderSummary();
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No items found</td></tr>';
+    updateOrderSummary(0);
     return;
   }
 
-  rows.forEach(r => {
-    const key        = r.item_code;
-    const savedPcs   = orderQtys[key] || '';
-    const ctn        = r.pcs_per_ctn || 0;
-    const savedCtn   = savedPcs && ctn ? Math.ceil(savedPcs / ctn) : '';
-    const suggestCtn = r.suggest_qty_pcs && ctn
-      ? `${Math.ceil(r.suggest_qty_pcs / ctn)} ctn`
-      : '';
-    const coverStr   = r.cover_days != null ? `${r.cover_days}d` : '—';
-    const coverColor = r.cover_days == null ? '' :
-      r.cover_days < (r.target_days * 0.5) ? 'color:var(--red);font-weight:500' :
-      r.cover_days < r.target_days          ? 'color:var(--amber);font-weight:500' : '';
+  rows.forEach(function(r) {
+    var key      = r.item_code;
+    var savedPcs = orderQtys[key] || '';
+    var ctn      = r.pcs_per_ctn || 0;
+    var savedCtn = savedPcs && ctn ? Math.ceil(savedPcs / ctn) : '';
+    var suggestCtn = r.suggest_qty_pcs && ctn ? Math.ceil(r.suggest_qty_pcs / ctn) + ' ctn' : '';
+    var coverStr   = r.cover_days != null ? r.cover_days + 'd' : '—';
+    var coverColor = r.cover_days == null ? '' :
+      r.cover_days < r.target_days * 0.5 ? 'color:var(--red);font-weight:500' :
+      r.cover_days < r.target_days       ? 'color:var(--amber);font-weight:500' : '';
+    var ek = key.replace(/[^a-zA-Z0-9]/g, '_');
 
-    const tr = document.createElement('tr');
-    const ek = key.replace(/[^a-zA-Z0-9]/g, '_');
+    var suggestCell = '';
+    if (r.suggest_qty_pcs > 0) {
+      suggestCell = '<span style="font-family:\'DM Mono\',monospace;font-weight:500">' + r.suggest_qty_pcs.toFixed(2) + ' ' + (r.inv_uom || 'pcs') + '</span>' +
+        (suggestCtn ? '<br><small style="color:var(--text-muted)">' + suggestCtn + '</small>' : '');
+    } else if (r.needs_ordering && (!r.daily_rate_90d || r.daily_rate_90d === 0)) {
+      suggestCell = '<span style="color:var(--amber);font-size:11px">No sales history</span>';
+    } else {
+      suggestCell = '<span style="color:var(--text-muted)">—</span>';
+    }
 
+    var tr = document.createElement('tr');
     tr.innerHTML =
-  '<td title="' + r.item_name + '" style="font-weight:500;white-space:normal;line-height:1.4">' + r.item_name + '</td>' +
-  '<td><span style="font-family:\'DM Mono\',monospace">' + (r.stock_on_hand != null ? r.stock_on_hand.toFixed(2) : '—') + ' ' + (r.inv_uom || 'pcs') + '</span>' +
-    (ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
-    '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
-  '<td style="' + coverColor + '">' + coverStr + '</td>' +
-  '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
-  '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
-  '<td>' + trendHtml(r.trend_pct) + '</td>' +
-  '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
-  '<td style="font-family:\'DM Mono\',monospace;font-size:12px">' +
-    (r.last_purchase_price ? (r.last_purchase_currency || '') + ' ' + Number(r.last_purchase_price).toFixed(2) +
-      (r.last_purchase_date ? '<br><small style="color:var(--text-muted)">' + new Date(r.last_purchase_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + '</small>' : '')
-    : '—') + '</td>' +
-  '<td>' + suggestCell + '</td>' +
-  '<td><div class="order-cell">' +
-    '<input type="number" class="qty-input' + (savedPcs ? ' filled' : '') + '" id="pcs-' + ek + '" placeholder="pcs" value="' + savedPcs + '" min="0" step="1" oninput="onPcsInput(\'' + ek + '\',\'' + key + '\',' + ctn + ')">' +
-    '<span class="qty-divider">/</span>' +
-    '<input type="number" class="qty-input' + (savedCtn ? ' filled' : '') + '" id="ctn-' + ek + '" placeholder="ctn" value="' + savedCtn + '" min="0" step="1" oninput="onCtnInput(\'' + ek + '\',\'' + key + '\',' + ctn + ')">' +
-  '</div></td>' +
-  '<td>' + statusBadge(r.stock_status) + '</td>';
-    `;
+      '<td title="' + r.item_name + '" style="font-weight:500;white-space:normal;line-height:1.4">' + r.item_name + '</td>' +
+      '<td><span style="font-family:\'DM Mono\',monospace">' + (r.stock_on_hand != null ? r.stock_on_hand.toFixed(2) : '—') + ' ' + (r.inv_uom || 'pcs') + '</span>' +
+        (ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
+        '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
+      '<td style="' + coverColor + '">' + coverStr + '</td>' +
+      '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
+      '<td>' + trendHtml(r.trend_pct) + '</td>' +
+      '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace;font-size:12px">' +
+        (r.last_purchase_price ? (r.last_purchase_currency || '') + ' ' + Number(r.last_purchase_price).toFixed(2) +
+          (r.last_purchase_date ? '<br><small style="color:var(--text-muted)">' + new Date(r.last_purchase_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + '</small>' : '')
+        : '—') + '</td>' +
+      '<td>' + suggestCell + '</td>' +
+      '<td><div class="order-cell">' +
+        '<input type="number" class="qty-input' + (savedPcs ? ' filled' : '') + '" id="pcs-' + ek + '" placeholder="pcs" value="' + savedPcs + '" min="0" step="1" oninput="onPcsInput(\'' + ek + '\',\'' + key + '\',' + ctn + ')">' +
+        '<span class="qty-divider">/</span>' +
+        '<input type="number" class="qty-input' + (savedCtn ? ' filled' : '') + '" id="ctn-' + ek + '" placeholder="ctn" value="' + savedCtn + '" min="0" step="1" oninput="onCtnInput(\'' + ek + '\',\'' + key + '\',' + ctn + ')">' +
+      '</div></td>' +
+      '<td>' + statusBadge(r.stock_status) + '</td>';
     tbody.appendChild(tr);
   });
 
-  updateOrderSummary();
-}
+  updateOrderSummary(rows.length);
+};
 
 // ── Slow moving tab ────────────────────────────────
-function renderSlow() {
-  const search = document.getElementById('slow-search').value.toLowerCase();
-  let rows = allData.filter(r => r.is_slow_moving);
-  if (search) rows = rows.filter(r =>
-    r.item_name.toLowerCase().includes(search) ||
-    (r.vendor_name || '').toLowerCase().includes(search)
-  );
+window.renderSlow = function() {
+  var search = (document.getElementById('slow-search').value || '').toLowerCase().trim();
+  var rows = allData.filter(function(r) { return r.is_slow_moving; });
+  if (search) rows = rows.filter(function(r) {
+    return r.item_name.toLowerCase().indexOf(search) > -1 ||
+           (r.vendor_name || '').toLowerCase().indexOf(search) > -1;
+  });
+
+  rows.sort(function(a, b) {
+    var vendorA = (a.vendor_name || '').toLowerCase();
+    var vendorB = (b.vendor_name || '').toLowerCase();
+    if (vendorA < vendorB) return -1;
+    if (vendorA > vendorB) return 1;
+    var coverA = a.cover_days != null ? a.cover_days : 9999;
+    var coverB = b.cover_days != null ? b.cover_days : 9999;
+    return coverA - coverB;
+  });
 
   document.getElementById('tc-slow').textContent = rows.length;
-  const tbody = document.getElementById('tbody-slow');
+  var tbody = document.getElementById('tbody-slow');
   tbody.innerHTML = '';
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">No slow moving items</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No slow moving items</td></tr>';
     return;
   }
 
-  rows.forEach(r => {
-    const reason = r.daily_rate_30d < r.daily_rate_90d * 0.5
-      ? 'Velocity drop'
-      : 'Cover 2× target';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td title="${r.item_name}" style="font-weight:500;white-space:normal;line-height:1.4">${r.item_name}</td>
-      <td style="color:var(--text-secondary)">${r.grp_name || '—'}</td>
-      <td>
-        <span style="font-family:'DM Mono',monospace">${fmt(r.stock_on_hand)}</span>
-        <button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail('${r.item_code}','${r.item_name}')">▾</button>
-      </td>
-      <td style="color:var(--amber);font-weight:500">${r.cover_days != null ? r.cover_days + 'd' : '—'}</td>
-      <td style="color:var(--text-muted)">${r.target_days ? r.target_days + 'd' : '—'}</td>
-      <td style="font-family:'DM Mono',monospace">${r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—'}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--red)">${r.daily_rate_30d ? r.daily_rate_30d.toFixed(1) + '/d' : '—'}</td>
-      <td>${trendHtml(r.trend_pct)}</td>
-      <td><span class="badge badge-slow">${reason}</span></td>
-      <td style="color:var(--text-secondary)">${r.vendor_name || '—'}</td>
-    `;
+  rows.forEach(function(r) {
+    var reason = r.daily_rate_30d < r.daily_rate_90d * 0.5 ? 'Velocity drop' : 'Cover 2× target';
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td title="' + r.item_name + '" style="font-weight:500;white-space:normal;line-height:1.4">' + r.item_name + '</td>' +
+      '<td><span style="font-family:\'DM Mono\',monospace">' + (r.stock_on_hand != null ? r.stock_on_hand.toFixed(2) : '—') + ' ' + (r.inv_uom || 'pcs') + '</span>' +
+        (r.pcs_per_ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / r.pcs_per_ctn).toFixed(2) + ' ctn</small>' : '') +
+        '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + r.item_code + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
+      '<td style="color:var(--amber);font-weight:500">' + (r.cover_days != null ? r.cover_days + 'd' : '—') + '</td>' +
+      '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace;color:var(--red)">' + (r.daily_rate_30d ? r.daily_rate_30d.toFixed(1) + '/d' : '—') + '</td>' +
+      '<td>' + trendHtml(r.trend_pct) + '</td>' +
+      '<td><span class="badge badge-slow">' + reason + '</span></td>' +
+      '<td style="color:var(--text-secondary)">' + (r.vendor_name || '—') + '</td>';
     tbody.appendChild(tr);
   });
-}
+};
 
 // ── Dead stock tab ─────────────────────────────────
-function renderDead() {
-  const search = document.getElementById('dead-search').value.toLowerCase();
-  let rows = allData.filter(r => r.is_dead_stock);
-  if (search) rows = rows.filter(r =>
-    r.item_name.toLowerCase().includes(search) ||
-    (r.vendor_name || '').toLowerCase().includes(search)
-  );
+window.renderDead = function() {
+  var search = (document.getElementById('dead-search').value || '').toLowerCase().trim();
+  var rows = allData.filter(function(r) { return r.is_dead_stock; });
+  if (search) rows = rows.filter(function(r) {
+    return r.item_name.toLowerCase().indexOf(search) > -1 ||
+           (r.vendor_name || '').toLowerCase().indexOf(search) > -1;
+  });
 
-  // Sort by days inactive desc
-  rows.sort((a, b) => (b.cover_days || 0) - (a.cover_days || 0));
+  rows.sort(function(a, b) {
+    var vendorA = (a.vendor_name || '').toLowerCase();
+    var vendorB = (b.vendor_name || '').toLowerCase();
+    if (vendorA < vendorB) return -1;
+    if (vendorA > vendorB) return 1;
+    var coverA = a.cover_days != null ? a.cover_days : 0;
+    var coverB = b.cover_days != null ? b.cover_days : 0;
+    return coverB - coverA;
+  });
 
   document.getElementById('tc-dead').textContent = rows.length;
-  const tbody = document.getElementById('tbody-dead');
+  var tbody = document.getElementById('tbody-dead');
   tbody.innerHTML = '';
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No dead stock items</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No dead stock items</td></tr>';
     return;
   }
 
-  rows.forEach(r => {
-    const lastSale = r.last_sale_date
+  rows.forEach(function(r) {
+    var lastSale = r.last_sale_date
       ? new Date(r.last_sale_date).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
       : 'Never';
-    const daysInactive = r.last_sale_date
+    var daysInactive = r.last_sale_date
       ? Math.floor((Date.now() - new Date(r.last_sale_date).getTime()) / 86400000)
-      : '—';
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td title="${r.item_name}" style="font-weight:500;white-space:normal;line-height:1.4">${r.item_name}</td>
-      <td style="color:var(--text-secondary)">${r.grp_name || '—'}</td>
-      <td>
-        <span style="font-family:'DM Mono',monospace">${fmt(r.stock_on_hand)}</span>
-        <button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail('${r.item_code}','${r.item_name}')">▾</button>
-      </td>
-      <td style="color:var(--text-secondary)">${lastSale}</td>
-      <td style="color:var(--red);font-weight:500;font-family:'DM Mono',monospace">${daysInactive}${typeof daysInactive === 'number' ? 'd' : ''}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--text-secondary)">${fmt(r.total_returns_90d)} pcs</td>
-      <td style="color:var(--text-secondary)">${r.vendor_name || '—'}</td>
-    `;
+      : null;
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td title="' + r.item_name + '" style="font-weight:500;white-space:normal;line-height:1.4">' + r.item_name + '</td>' +
+      '<td><span style="font-family:\'DM Mono\',monospace">' + (r.stock_on_hand != null ? r.stock_on_hand.toFixed(2) : '—') + ' ' + (r.inv_uom || 'pcs') + '</span>' +
+        (r.pcs_per_ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / r.pcs_per_ctn).toFixed(2) + ' ctn</small>' : '') +
+        '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + r.item_code + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
+      '<td style="color:var(--text-secondary)">' + lastSale + '</td>' +
+      '<td style="color:var(--red);font-weight:500;font-family:\'DM Mono\',monospace">' + (daysInactive != null ? daysInactive + 'd' : '—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace;color:var(--text-secondary)">' + fmt(r.total_returns_90d) + ' pcs</td>' +
+      '<td style="color:var(--text-secondary)">' + (r.vendor_name || '—') + '</td>';
     tbody.appendChild(tr);
   });
-}
+};
 
 // ── Warehouse detail modal ─────────────────────────
 window.showWhsDetail = function(itemCode, itemName) {
