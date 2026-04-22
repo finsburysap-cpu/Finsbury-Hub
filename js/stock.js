@@ -294,36 +294,27 @@ function renderReplen() {
     const tr = document.createElement('tr');
     const ek = key.replace(/[^a-zA-Z0-9]/g, '_');
 
-    tr.innerHTML = `
-      <td title="${r.item_name}" style="font-weight:500;white-space:normal;line-height:1.4">${r.item_name}</td>
-      <td style="color:var(--text-secondary)">${r.grp_name || '—'}</td>
-      <td>
-        <span style="font-family:'DM Mono',monospace">${fmt(r.stock_on_hand)}</span>
-        <button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail('${key}','${r.item_name}')">▾</button>
-      </td>
-      <td style="${coverColor}">${coverStr}</td>
-      <td style="color:var(--text-muted)">${r.target_days ? r.target_days + 'd' : '—'}</td>
-      <td style="font-family:'DM Mono',monospace">${r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—'}
-        <br><small>${trendHtml(r.trend_pct)}</small>
-      </td>
-      <td>${trendHtml(r.trend_pct)}</td>
-      <td style="color:var(--text-muted);font-family:'DM Mono',monospace">${r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—'}</td>
-      <td>
-        <span style="font-family:'DM Mono',monospace;font-weight:500">${r.suggest_qty_pcs > 0 ? fmt(r.suggest_qty_pcs) + ' pcs' : '—'}</span>
-        ${suggestCtn ? `<br><small style="color:var(--text-muted)">${suggestCtn}</small>` : ''}
-      </td>
-      <td>
-        <div class="order-cell">
-          <input type="number" class="qty-input${savedPcs ? ' filled' : ''}"
-            id="pcs-${ek}" placeholder="pcs" value="${savedPcs}" min="0" step="1"
-            oninput="onPcsInput('${ek}','${key}',${ctn})">
-          <span class="qty-divider">/</span>
-          <input type="number" class="qty-input${savedCtn ? ' filled' : ''}"
-            id="ctn-${ek}" placeholder="ctn" value="${savedCtn}" min="0" step="1"
-            oninput="onCtnInput('${ek}','${key}',${ctn})">
-        </div>
-      </td>
-      <td>${statusBadge(r.stock_status)}</td>
+    tr.innerHTML =
+  '<td title="' + r.item_name + '" style="font-weight:500;white-space:normal;line-height:1.4">' + r.item_name + '</td>' +
+  '<td><span style="font-family:\'DM Mono\',monospace">' + (r.stock_on_hand != null ? r.stock_on_hand.toFixed(2) : '—') + ' ' + (r.inv_uom || 'pcs') + '</span>' +
+    (ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
+    '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
+  '<td style="' + coverColor + '">' + coverStr + '</td>' +
+  '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
+  '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
+  '<td>' + trendHtml(r.trend_pct) + '</td>' +
+  '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
+  '<td style="font-family:\'DM Mono\',monospace;font-size:12px">' +
+    (r.last_purchase_price ? (r.last_purchase_currency || '') + ' ' + Number(r.last_purchase_price).toFixed(2) +
+      (r.last_purchase_date ? '<br><small style="color:var(--text-muted)">' + new Date(r.last_purchase_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + '</small>' : '')
+    : '—') + '</td>' +
+  '<td>' + suggestCell + '</td>' +
+  '<td><div class="order-cell">' +
+    '<input type="number" class="qty-input' + (savedPcs ? ' filled' : '') + '" id="pcs-' + ek + '" placeholder="pcs" value="' + savedPcs + '" min="0" step="1" oninput="onPcsInput(\'' + ek + '\',\'' + key + '\',' + ctn + ')">' +
+    '<span class="qty-divider">/</span>' +
+    '<input type="number" class="qty-input' + (savedCtn ? ' filled' : '') + '" id="ctn-' + ek + '" placeholder="ctn" value="' + savedCtn + '" min="0" step="1" oninput="onCtnInput(\'' + ek + '\',\'' + key + '\',' + ctn + ')">' +
+  '</div></td>' +
+  '<td>' + statusBadge(r.stock_status) + '</td>';
     `;
     tbody.appendChild(tr);
   });
