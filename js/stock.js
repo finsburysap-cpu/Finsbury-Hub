@@ -640,14 +640,14 @@ window.exportReplen = function(format) {
     bodyStyles: { fontSize: 9 },
     alternateRowStyles: { fillColor: [250, 250, 250] },
     columnStyles: {
-  0: { cellWidth: 8,  halign: 'center' },
-  1: { cellWidth: 60 },
-  2: { cellWidth: 20, halign: 'right' },
-  3: { cellWidth: 20, halign: 'right' },
-  4: { cellWidth: 28, halign: 'right' },
-  5: { cellWidth: 28, halign: 'right' }
+  0: { cellWidth: 6,  halign: 'center' },
+  1: { cellWidth: 55 },
+  2: { cellWidth: 18, halign: 'right' },
+  3: { cellWidth: 18, halign: 'right' },
+  4: { cellWidth: 25, halign: 'right' },
+  5: { cellWidth: 25, halign: 'right' }
 },
-margin: { left: 10, right: 10 }
+margin: { left: 8, right: 8 }
   });
 
   // Authorised by signature line
