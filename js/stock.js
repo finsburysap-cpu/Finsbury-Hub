@@ -515,7 +515,7 @@ window.exportReplen = function(format) {
   var dateLabel    = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
   var vendorLabel  = vendor || 'All Vendors';
   var siteLabel    = site || '';
-  var preparedBy = (session && session.name) ? session.name : (session && session.email) ? session.email : '';
+  var preparedBy = (session && session.name) ? session.name : (session && session.name) ? session.email : '';
 
   var tableRows = [];
   var total = 0;
