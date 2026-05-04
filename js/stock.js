@@ -639,7 +639,8 @@ window.exportReplen = function(format) {
     },
     bodyStyles: { fontSize: 9 },
     alternateRowStyles: { fillColor: [250, 250, 250] },
-    columnStyles: {
+    tableWidth: 'fixed',
+	columnStyles: {
   0: { cellWidth: 6,  halign: 'center' },
   1: { cellWidth: 55 },
   2: { cellWidth: 18, halign: 'right' },
