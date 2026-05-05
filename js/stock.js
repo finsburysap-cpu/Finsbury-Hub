@@ -626,27 +626,26 @@ window.exportReplen = function(format) {
       { content: 'TOTAL (' + currency + ')', styles: { fontStyle: 'bold', halign: 'right' } },
       { content: total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold' } }
     ]],
-    headStyles: {
-      fillColor: [192, 57, 43],
-      textColor: 255,
-      fontStyle: 'bold',
-      fontSize: 9
-    },
-    footStyles: {
-      fillColor: [245, 245, 245],
-      textColor: [192, 57, 43],
-      fontSize: 10
-    },
-    bodyStyles: { fontSize: 9 },
-    alternateRowStyles: { fillColor: [250, 250, 250] },
-    tableWidth: 'fixed',
-	columnStyles: {
-  0: { cellWidth: 6,  halign: 'center' },
-  1: { cellWidth: 55 },
-  2: { cellWidth: 18, halign: 'right' },
-  3: { cellWidth: 18, halign: 'right' },
-  4: { cellWidth: 25, halign: 'right' },
-  5: { cellWidth: 25, halign: 'right' }
+    styles: { fontSize: 8, cellPadding: 2 },
+headStyles: {
+  fillColor: [192, 57, 43],
+  textColor: 255,
+  fontStyle: 'bold',
+  fontSize: 8
+},
+footStyles: {
+  fillColor: [245, 245, 245],
+  textColor: [192, 57, 43],
+  fontSize: 9
+},
+bodyStyles: { fontSize: 8 },
+alternateRowStyles: { fillColor: [250, 250, 250] },
+columnStyles: {
+  0: { halign: 'center' },
+  2: { halign: 'right' },
+  3: { halign: 'right' },
+  4: { halign: 'right' },
+  5: { halign: 'right' }
 },
 margin: { left: 8, right: 8 }
   });
