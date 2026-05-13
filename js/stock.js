@@ -140,12 +140,12 @@ window.doRefresh = async function() {
 
     // Poll sync_log every 10 seconds for a new success entry
     const startedAt = new Date().toISOString();
-    const maxWait   = 3 * 60 * 1000; // 3 minutes timeout
+    const maxWait = 5 * 60 * 1000; // 5 minutes
     const started   = Date.now();
     let   synced    = false;
 
     while (Date.now() - started < maxWait) {
-      await new Promise(r => setTimeout(r, 10000)); // wait 10 seconds
+      await new Promise(r => setTimeout(r, 5000)); // wait 5 seconds
 
       const { data } = await sb
         .from('sync_log')
