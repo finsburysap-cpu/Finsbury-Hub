@@ -508,55 +508,49 @@ window.exportReplen = function(format) {
     return;
   }
 
-  // Detect currency from first item
-  var currency = exportRows[0].last_purchase_currency || 'KES';
+  var dateLabel  = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  var vendorLabel = vendor || 'All Vendors';
 
-  // Build common data
-  var dateLabel    = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-  var vendorLabel  = vendor || 'All Vendors';
-  var siteLabel    = site || '';
-  var preparedBy = (session && session.name) ? session.name : (session && session.name) ? session.email : '';
+  // Build data
+  var wsData = [
+    ['FINSBURY TRADING LTD'],
+    ['Date: ' + dateLabel],
+    ['Vendor: ' + vendorLabel],
+    [],
+    ['#', 'Item Name', 'Order Qty (Pcs)', 'Order Qty (Ctn)', 'Weight (KG)']
+  ];
 
-  var tableRows = [];
-  var total = 0;
+  var totalWeight = 0;
   exportRows.forEach(function(r, i) {
     var oqPcs    = orderQtys[r.item_code];
     var oqCtn    = (oqPcs && r.pcs_per_ctn) ? parseFloat((oqPcs / r.pcs_per_ctn).toFixed(2)) : '';
-    var price    = r.last_purchase_price ? Number(r.last_purchase_price) : 0;
-    var subtotal = price ? oqPcs * price : 0;
-    total += subtotal;
-    tableRows.push([
-      i + 1,
-      r.item_name,
-      oqPcs,
-      oqCtn || '—',
-      price ? price.toFixed(2) : '—',
-      subtotal ? subtotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'
-    ]);
+    var weightKg = r.weight_kg ? parseFloat((r.weight_kg * oqPcs).toFixed(2)) : '';
+    if (weightKg) totalWeight += weightKg;
+    wsData.push([i + 1, r.item_name, oqPcs, oqCtn, weightKg || '—']);
   });
 
-  if (format === 'xlsx') {
-    var wsData = [
-      ['FINSBURY TRADING LTD'],
-      ['Date: ' + dateLabel],
-      ['Vendor: ' + vendorLabel],
-      [],
-      ['#', 'Item Name', 'Qty (pcs)', 'Qty (ctn)', 'Last price (' + currency + ')', 'Subtotal (' + currency + ')']
-    ];
-    tableRows.forEach(function(r) { wsData.push(r); });
-    wsData.push([]);
-    wsData.push(['', '', '', '', 'Total (' + currency + ')', total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })]);
+  // Total row
+  wsData.push([]);
+  wsData.push(['', '', '', 'Total Weight (KG)', parseFloat(totalWeight.toFixed(2))]);
 
-    var wb = XLSX.utils.book_new();
-    var ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch: 4 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 18 }];
-    ['A1','A2','A3','A5','B5','C5','D5','E5','F5'].forEach(function(cell) {
-      if (ws[cell]) ws[cell].s = { font: { bold: true } };
-    });
-    XLSX.utils.book_append_sheet(wb, ws, 'Order');
-    XLSX.writeFile(wb, 'order_' + site + '_' + today() + '.xlsx');
-    return;
-  }
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  ws['!cols'] = [
+    { wch: 4  },  // #
+    { wch: 45 },  // Item Name
+    { wch: 15 },  // Qty Pcs
+    { wch: 15 },  // Qty Ctn
+    { wch: 15 },  // Weight
+  ];
+
+  ['A1','A2','A3','A5','B5','C5','D5','E5'].forEach(function(cell) {
+    if (ws[cell]) ws[cell].s = { font: { bold: true } };
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Order');
+  XLSX.writeFile(wb, 'order_' + site + '_' + today() + '.xlsx');
+};
 
   // PDF export
   var doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
