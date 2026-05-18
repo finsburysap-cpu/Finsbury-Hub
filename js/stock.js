@@ -494,7 +494,17 @@ function updateOrderSummary() {
   document.getElementById('order-summary').textContent =
     count > 0 ? `${count} item${count !== 1 ? 's' : ''} with quantities` : '';
 }
-
+window.clearOrder = function() {
+  if (Object.keys(orderQtys).length === 0) return;
+  if (!confirm('Clear all entered order quantities?')) return;
+  orderQtys = {};
+  // Reset all inputs
+  document.querySelectorAll('.qty-input').forEach(function(el) {
+    el.value = '';
+    el.classList.remove('filled');
+  });
+  updateOrderSummary();
+};
 // ── Export ─────────────────────────────────────────
 window.exportReplen = function(format) {
   var vendor = (document.getElementById('vendor-select').value || '').trim();
@@ -512,38 +522,48 @@ window.exportReplen = function(format) {
   var vendorLabel = vendor || 'All Vendors';
   var siteLabel   = site || '';
   var preparedBy  = session ? (session.name || session.email || '') : '';
-
-  if (format === 'xlsx') {
+  var includeWeight = document.getElementById('include-weight').checked;
+  var headers = ['#', 'Item Name', 'Order Qty (Pcs)', 'Order Qty (Ctn)'];
+    if (includeWeight) headers.push('Weight (KG)');
     var wsData = [
       ['FINSBURY TRADING LTD'],
       ['Date: ' + dateLabel],
       ['Vendor: ' + vendorLabel],
       [],
-      ['#', 'Item Name', 'Order Qty (Pcs)', 'Order Qty (Ctn)', 'Weight (KG)']
+      headers
     ];
 
     var totalWeight = 0;
     exportRows.forEach(function(r, i) {
       var oqPcs    = orderQtys[r.item_code];
       var oqCtn    = (oqPcs && r.pcs_per_ctn) ? parseFloat((oqPcs / r.pcs_per_ctn).toFixed(2)) : '';
-      var weightKg = r.weight_kg ? parseFloat((r.weight_kg * oqPcs).toFixed(2)) : '';
-      if (weightKg) totalWeight += weightKg;
-      wsData.push([i + 1, r.item_name, oqPcs, oqCtn, weightKg || '—']);
+      var row      = [i + 1, r.item_name, oqPcs, oqCtn];
+      if (includeWeight) {
+        var weightKg = r.weight_kg ? parseFloat((r.weight_kg * oqPcs).toFixed(2)) : '';
+        if (weightKg) totalWeight += weightKg;
+        row.push(weightKg || '—');
+      }
+      wsData.push(row);
     });
 
     wsData.push([]);
-    wsData.push(['', '', '', 'Total Weight (KG)', parseFloat(totalWeight.toFixed(2))]);
+    if (includeWeight) {
+      wsData.push(['', '', '', 'Total Weight (KG)', parseFloat(totalWeight.toFixed(2))]);
+    }
 
     var wb = XLSX.utils.book_new();
     var ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch:4 },{ wch:45 },{ wch:15 },{ wch:15 },{ wch:15 }];
-    ['A1','A2','A3','A5','B5','C5','D5','E5'].forEach(function(cell) {
+    var cols = [{ wch:4 }, { wch:45 }, { wch:15 }, { wch:15 }];
+    if (includeWeight) cols.push({ wch:15 });
+    ws['!cols'] = cols;
+    var boldCells = ['A1','A2','A3','A5','B5','C5','D5'];
+    if (includeWeight) boldCells.push('E5');
+    boldCells.forEach(function(cell) {
       if (ws[cell]) ws[cell].s = { font: { bold: true } };
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Order');
     XLSX.writeFile(wb, 'order_' + site + '_' + today() + '.xlsx');
     return;
-  }
 
   // PDF export
   var doc    = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -585,35 +605,44 @@ window.exportReplen = function(format) {
   doc.setFont('helvetica', 'bold');
   doc.text(preparedBy, 135, y);
 
-  var tableRows = [];
+var tableRows = [];
   var totalWeight = 0;
   exportRows.forEach(function(r, i) {
     var oqPcs    = orderQtys[r.item_code];
     var oqCtn    = (oqPcs && r.pcs_per_ctn) ? parseFloat((oqPcs / r.pcs_per_ctn).toFixed(2)) : '—';
-    var weightKg = r.weight_kg ? parseFloat((r.weight_kg * oqPcs).toFixed(2)) : '—';
-    if (r.weight_kg) totalWeight += r.weight_kg * oqPcs;
-    tableRows.push([i + 1, r.item_name, oqPcs, oqCtn, weightKg]);
+    var row      = [i + 1, r.item_name, oqPcs, oqCtn];
+    if (includeWeight) {
+      var weightKg = r.weight_kg ? parseFloat((r.weight_kg * oqPcs).toFixed(2)) : '—';
+      if (r.weight_kg) totalWeight += r.weight_kg * oqPcs;
+      row.push(weightKg);
+    }
+    tableRows.push(row);
   });
+
+  var pdfHead = [['#', 'Item name', 'Qty (pcs)', 'Qty (ctn)']];
+  if (includeWeight) pdfHead[0].push('Weight (KG)');
+
+  var pdfFoot = [['', '', '', includeWeight ? 'Total Weight (KG)' : '']];
+  if (includeWeight) pdfFoot[0].push({ content: parseFloat(totalWeight.toFixed(2)).toString(), styles: { fontStyle: 'bold' } });
+
+  var pdfColStyles = {
+    0: { halign: 'center' },
+    2: { halign: 'right' },
+    3: { halign: 'right' }
+  };
+  if (includeWeight) pdfColStyles[4] = { halign: 'right' };
 
   doc.autoTable({
     startY: 50,
-    head: [['#', 'Item name', 'Qty (pcs)', 'Qty (ctn)', 'Weight (KG)']],
+    head: pdfHead,
     body: tableRows,
-    foot: [[
-      '', '', '', 'Total Weight (KG)',
-      { content: parseFloat(totalWeight.toFixed(2)).toString(), styles: { fontStyle: 'bold' } }
-    ]],
+    foot: pdfFoot,
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: [192, 57, 43], textColor: 255, fontStyle: 'bold', fontSize: 8 },
     footStyles: { fillColor: [245, 245, 245], textColor: [192, 57, 43], fontSize: 9 },
     bodyStyles: { fontSize: 8 },
     alternateRowStyles: { fillColor: [250, 250, 250] },
-    columnStyles: {
-      0: { halign: 'center' },
-      2: { halign: 'right' },
-      3: { halign: 'right' },
-      4: { halign: 'right' }
-    },
+    columnStyles: pdfColStyles,
     margin: { left: 8, right: 8 }
   });
 

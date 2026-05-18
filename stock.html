@@ -97,10 +97,14 @@
           <button class="btn-sm btn-apply" onclick="renderReplen()">Apply</button>
         </div>
         <div class="toolbar-right">
-          <span class="order-summary" id="order-summary"></span>
-          <button class="btn-sm" onclick="exportReplen('xlsx')">Export Excel</button>
+		<span class="order-summary" id="order-summary"></span>
+		<label style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;cursor:pointer">
+		<input type="checkbox" id="include-weight" checked> Include weight
+		</label>
+		<button class="btn-sm btn-ghost" onclick="clearOrder()">Clear order</button>
+		<button class="btn-sm" onclick="exportReplen('xlsx')">Export Excel</button>
 		<button class="btn-sm" onclick="exportReplen('pdf')">Export PDF</button>
-        </div>
+		</div>
       </div>
       <div class="note-bar">Suggested qty is based on 90-day average daily rate. Trend shows how the last 30 days compare to the 90-day average.</div>
       <div class="table-wrap">
