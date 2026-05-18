@@ -659,7 +659,6 @@ margin: { left: 8, right: 8 }
 
   doc.save('order_' + site + '_' + today() + '.pdf');
 };
-
 window.exportSlow = function() {
   const rows = allData.filter(r => r.is_slow_moving);
   const csvRows = [
