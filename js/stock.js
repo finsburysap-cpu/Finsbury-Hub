@@ -207,7 +207,26 @@ function populateVendorDropdown() {
   });
 }
 
-window.onVendorChange = function() { renderReplen(); };
+window.onVendorChange = function() {
+  var vendor = (document.getElementById('vendor-select').value || '').trim();
+  var wrap   = document.getElementById('target-override-wrap');
+  var input  = document.getElementById('target-override');
+  if (wrap && input) {
+    if (vendor) {
+      var vendorItems = allData.filter(function(r) {
+        return (r.vendor_name || '').trim() === vendor;
+      });
+      var defaultDays = vendorItems.length > 0 && vendorItems[0].target_days
+        ? vendorItems[0].target_days : 21;
+      input.value = defaultDays;
+      wrap.style.display = 'flex';
+    } else {
+      wrap.style.display = 'none';
+      input.value = '';
+    }
+  }
+  renderReplen();
+};
 
 // ── Tab switching ──────────────────────────────────
 window.setTab = function(tab) {
@@ -279,16 +298,33 @@ window.renderReplen = function() {
     var savedPcs = orderQtys[key] || '';
     var ctn      = r.pcs_per_ctn || 0;
     var savedCtn = savedPcs && ctn ? Math.ceil(savedPcs / ctn) : '';
-    var suggestCtn = r.suggest_qty_pcs && ctn ? Math.ceil(r.suggest_qty_pcs / ctn) + ' ctn' : '';
+    var ek       = key.replace(/[^a-zA-Z0-9]/g, '_');
+
+    // Target days override
+    var targetDaysOverride = null;
+    var overrideInput = document.getElementById('target-override');
+    if (vendor && overrideInput && overrideInput.value) {
+      targetDaysOverride = parseFloat(overrideInput.value);
+    }
+    var effectiveTargetDays = targetDaysOverride || r.target_days || 21;
+
+    // Recalculate suggested qty with override
+    var suggestPcs = r.suggest_qty_pcs;
+    if (targetDaysOverride && r.daily_rate_90d > 0) {
+      suggestPcs = Math.max(0, Math.round(
+        (targetDaysOverride * r.daily_rate_90d) - r.stock_on_hand - r.open_po_qty
+      ));
+    }
+
+    var suggestCtn = suggestPcs && ctn ? Math.ceil(suggestPcs / ctn) + ' ctn' : '';
     var coverStr   = r.cover_days != null ? r.cover_days + 'd' : '—';
     var coverColor = r.cover_days == null ? '' :
-      r.cover_days < r.target_days * 0.5 ? 'color:var(--red);font-weight:500' :
-      r.cover_days < r.target_days       ? 'color:var(--amber);font-weight:500' : '';
-    var ek = key.replace(/[^a-zA-Z0-9]/g, '_');
+      r.cover_days < effectiveTargetDays * 0.5 ? 'color:var(--red);font-weight:500' :
+      r.cover_days < effectiveTargetDays       ? 'color:var(--amber);font-weight:500' : '';
 
     var suggestCell = '';
-    if (r.suggest_qty_pcs > 0) {
-      suggestCell = '<span style="font-family:\'DM Mono\',monospace;font-weight:500">' + r.suggest_qty_pcs.toFixed(2) + ' ' + (r.inv_uom || 'pcs') + '</span>' +
+    if (suggestPcs > 0) {
+      suggestCell = '<span style="font-family:\'DM Mono\',monospace;font-weight:500">' + Number(suggestPcs).toFixed(2) + ' ' + (r.inv_uom || 'pcs') + '</span>' +
         (suggestCtn ? '<br><small style="color:var(--text-muted)">' + suggestCtn + '</small>' : '');
     } else if (r.needs_ordering && (!r.daily_rate_90d || r.daily_rate_90d === 0)) {
       suggestCell = '<span style="color:var(--amber);font-size:11px">No sales history</span>';
@@ -303,7 +339,7 @@ window.renderReplen = function() {
         (ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
         '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
       '<td style="' + coverColor + '">' + coverStr + '</td>' +
-      '<td style="color:var(--text-muted)">' + (r.target_days ? r.target_days + 'd' : '—') + '</td>' +
+      '<td style="color:var(--text-muted)">' + (effectiveTargetDays ? effectiveTargetDays + 'd' : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
       '<td>' + trendHtml(r.trend_pct) + '</td>' +
       '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
