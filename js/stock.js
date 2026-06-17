@@ -309,13 +309,18 @@ window.renderReplen = function() {
     var effectiveTargetDays = targetDaysOverride || r.target_days || 21;
 
     // Recalculate suggested qty with override
+    var deductOpenPo  = document.getElementById('deduct-open-po') && document.getElementById('deduct-open-po').checked;
     var suggestPcs = r.suggest_qty_pcs;
     if (targetDaysOverride && r.daily_rate_90d > 0) {
       suggestPcs = Math.max(0, Math.round(
-        (targetDaysOverride * r.daily_rate_90d) - r.stock_on_hand - r.open_po_qty
+        (targetDaysOverride * r.daily_rate_90d) - r.stock_on_hand - (deductOpenPo ? r.open_po_qty : 0)
+      ));
+    } else if (deductOpenPo && r.daily_rate_90d > 0) {
+      suggestPcs = Math.max(0, Math.round(
+        (r.target_days * r.daily_rate_90d) - r.stock_on_hand - r.open_po_qty
       ));
     }
-
+	
     var suggestCtn = suggestPcs && ctn ? Math.ceil(suggestPcs / ctn) + ' ctn' : '';
     var coverStr   = r.cover_days != null ? r.cover_days + 'd' : '—';
     var coverColor = r.cover_days == null ? '' :
