@@ -589,7 +589,6 @@ window.clearOrder = function() {
   });
   updateOrderSummary();
 };
-};
 // ── Export ─────────────────────────────────────────
 window.exportReplen = function(format) {
   var vendor = (document.getElementById('vendor-select').value || '').trim();
