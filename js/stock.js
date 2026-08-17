@@ -344,7 +344,6 @@ window.renderReplen = function() {
         (ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
         '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
       '<td style="' + coverColor + '">' + coverStr + '</td>' +
-      '<td style="color:var(--text-muted)">' + (effectiveTargetDays ? effectiveTargetDays + 'd' : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
       '<td>' + trendHtml(r.trend_pct) + '</td>' +
       '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
@@ -353,6 +352,7 @@ window.renderReplen = function() {
           (r.last_purchase_date ? '<br><small style="color:var(--text-muted)">' + new Date(r.last_purchase_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + '</small>' : '')
         : '—') + '</td>' +
       '<td>' + suggestCell + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace;font-size:12px" id="weight-' + ek + '">—</td>' +
       '<td><div class="order-cell">' +
         '<input type="number" class="qty-input' + (savedPcs ? ' filled' : '') + '" id="pcs-' + ek + '" placeholder="pcs" value="' + savedPcs + '" min="0" step="1" oninput="onPcsInput(\'' + ek + '\',\'' + key + '\',' + ctn + ')">' +
         '<span class="qty-divider">/</span>' +
@@ -493,9 +493,11 @@ window.showWhsDetail = function(itemCode, itemName) {
 
 // ── Order qty inputs ───────────────────────────────
 window.onPcsInput = function(ek, key, ctnSize) {
-  const pcsEl = document.getElementById('pcs-' + ek);
-  const ctnEl = document.getElementById('ctn-' + ek);
-  const pcs   = parseInt(pcsEl.value) || 0;
+  var pcsEl = document.getElementById('pcs-' + ek);
+  var ctnEl = document.getElementById('ctn-' + ek);
+  var wgtEl = document.getElementById('weight-' + ek);
+  var pcs   = parseInt(pcsEl.value) || 0;
+
   if (pcs > 0) {
     orderQtys[key] = pcs;
     if (ctnSize > 0) ctnEl.value = Math.ceil(pcs / ctnSize);
@@ -507,16 +509,29 @@ window.onPcsInput = function(ek, key, ctnSize) {
     pcsEl.classList.remove('filled');
     ctnEl.classList.remove('filled');
   }
+
+  // Update weight cell
+  if (wgtEl) {
+    var r = allData.find(function(d) { return d.item_code === key; });
+    if (r && r.weight_kg && pcs > 0) {
+      wgtEl.textContent = (r.weight_kg * pcs).toFixed(2) + ' kg';
+    } else {
+      wgtEl.textContent = '—';
+    }
+  }
+
   updateOrderSummary();
 };
 
 window.onCtnInput = function(ek, key, ctnSize) {
   if (!ctnSize) return;
-  const pcsEl = document.getElementById('pcs-' + ek);
-  const ctnEl = document.getElementById('ctn-' + ek);
-  const ctn   = parseInt(ctnEl.value) || 0;
+  var pcsEl = document.getElementById('pcs-' + ek);
+  var ctnEl = document.getElementById('ctn-' + ek);
+  var wgtEl = document.getElementById('weight-' + ek);
+  var ctn   = parseInt(ctnEl.value) || 0;
+
   if (ctn > 0) {
-    const pcs = ctn * ctnSize;
+    var pcs = ctn * ctnSize;
     orderQtys[key] = pcs;
     pcsEl.value = pcs;
     pcsEl.classList.add('filled');
@@ -527,24 +542,53 @@ window.onCtnInput = function(ek, key, ctnSize) {
     pcsEl.classList.remove('filled');
     ctnEl.classList.remove('filled');
   }
+
+  // Update weight cell
+  if (wgtEl) {
+    var r = allData.find(function(d) { return d.item_code === key; });
+    var pcs = parseInt(pcsEl.value) || 0;
+    if (r && r.weight_kg && pcs > 0) {
+      wgtEl.textContent = (r.weight_kg * pcs).toFixed(2) + ' kg';
+    } else {
+      wgtEl.textContent = '—';
+    }
+  }
+
   updateOrderSummary();
 };
 
 function updateOrderSummary() {
-  const count = Object.keys(orderQtys).length;
+  var count       = Object.keys(orderQtys).length;
+  var totalWeight = 0;
+
+  Object.keys(orderQtys).forEach(function(key) {
+    var r = allData.find(function(d) { return d.item_code === key; });
+    if (r && r.weight_kg) {
+      totalWeight += r.weight_kg * orderQtys[key];
+    }
+  });
+
   document.getElementById('order-summary').textContent =
-    count > 0 ? `${count} item${count !== 1 ? 's' : ''} with quantities` : '';
+    count > 0 ? count + ' item' + (count !== 1 ? 's' : '') + ' with quantities' : '';
+
+  var weightEl = document.getElementById('m-order-weight');
+  var itemsEl  = document.getElementById('m-order-items');
+  if (weightEl) weightEl.textContent = totalWeight > 0 ? totalWeight.toFixed(2) + ' kg' : '0.00 kg';
+  if (itemsEl)  itemsEl.textContent  = count + ' item' + (count !== 1 ? 's' : '');
 }
 window.clearOrder = function() {
   if (Object.keys(orderQtys).length === 0) return;
   if (!confirm('Clear all entered order quantities?')) return;
   orderQtys = {};
-  // Reset all inputs
   document.querySelectorAll('.qty-input').forEach(function(el) {
     el.value = '';
     el.classList.remove('filled');
   });
+  document.querySelectorAll('[id^="weight-"]').forEach(function(el) {
+    el.textContent = '—';
+  });
   updateOrderSummary();
+};
 };
 // ── Export ─────────────────────────────────────────
 window.exportReplen = function(format) {
