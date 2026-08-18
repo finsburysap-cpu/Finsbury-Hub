@@ -646,7 +646,7 @@ window.exportReplen = function(format) {
       if (ws[cell]) ws[cell].s = { font: { bold: true } };
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Order');
-    XLSX.writeFile(wb, 'order_' + site + '_' + today() + '.xlsx');
+    var safeVendor = vendorLabel.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
     return;
 
   // PDF export
