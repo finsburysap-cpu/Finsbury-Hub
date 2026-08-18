@@ -649,6 +649,7 @@ window.exportReplen = function(format) {
     var safeVendor = vendorLabel.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
     XLSX.writeFile(wb, 'order_' + site + '_' + safeVendor + '_' + today() + '.xlsx');
     return;
+  }
 
   // PDF export
   var doc    = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
