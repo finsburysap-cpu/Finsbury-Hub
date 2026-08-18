@@ -647,6 +647,7 @@ window.exportReplen = function(format) {
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Order');
     var safeVendor = vendorLabel.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    XLSX.writeFile(wb, 'order_' + site + '_' + safeVendor + '_' + today() + '.xlsx');
     return;
 
   // PDF export
