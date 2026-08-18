@@ -745,7 +745,6 @@ var tableRows = [];
   doc.text('Signature / Date', 10, finalY + 17);
 
   doc.save('order_' + site + '_' + today() + '.pdf');
-};
 
 window.exportSlow = function() {
   const rows = allData.filter(r => r.is_slow_moving);
