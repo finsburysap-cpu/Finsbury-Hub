@@ -607,7 +607,9 @@ window.exportReplen = function(format) {
   var siteLabel   = site || '';
   var preparedBy  = session ? (session.name || session.email || '') : '';
   var includeWeight = document.getElementById('include-weight').checked;
-  var headers = ['#', 'Item Name', 'Order Qty (Pcs)', 'Order Qty (Ctn)'];
+
+  if (format === 'xlsx') {
+    var headers = ['#', 'Item Name', 'Order Qty (Pcs)', 'Order Qty (Ctn)'];
     if (includeWeight) headers.push('Weight (KG)');
     var wsData = [
       ['FINSBURY TRADING LTD'],
