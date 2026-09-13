@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purchase Tracker — Finsbury Hub</title>
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="appshell">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="hub.html" class="topbar-back">← Hub</a>
+      <div class="topbar-brand">Purchase Tracker</div>
+      <div class="site-pill" id="site-pill"></div>
+    </div>
+    <div class="topbar-right">
+      <div class="sync-status" id="sync-status">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span class="sync-label" id="sync-label">Loading...</span>
+        <button class="btn-refresh" id="btn-refresh" onclick="doRefresh()">
+          <span id="refresh-text">Refresh</span>
+          <span id="refresh-spinner" class="spinner" style="display:none"></span>
+        </button>
+      </div>
+      <button class="btn-ghost-sm" onclick="switchSite()">Switch site</button>
+      <button class="btn-ghost-sm" onclick="signOutAll()">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Metrics row -->
+  <div class="metrics-row" id="metrics-row">
+    <div class="metric-card">
+      <div class="metric-label">Open POs</div>
+      <div class="metric-value" id="m-open">—</div>
+      <div class="metric-sub" id="m-vendors-sub">loading...</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Fully pending</div>
+      <div class="metric-value red" id="m-pending">—</div>
+      <div class="metric-sub">nothing received</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Partially received</div>
+      <div class="metric-value amber" id="m-partial">—</div>
+      <div class="metric-sub">balance outstanding</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total outstanding</div>
+      <div class="metric-value" id="m-value">—</div>
+      <div class="metric-sub">open qty × last price</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="view-toolbar" style="padding:12px 20px;border-bottom:1px solid var(--border)">
+    <div class="toolbar-left">
+      <div class="field-inline">
+        <label>Vendor</label>
+        <select id="vendor-filter" onchange="renderPOs()">
+          <option value="">All vendors</option>
+        </select>
+      </div>
+      <div class="field-inline">
+        <label>Status</label>
+        <select id="status-filter" onchange="renderPOs()">
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="partial">Partial</option>
+        </select>
+      </div>
+      <input class="search-input" id="po-search" placeholder="Search PO or item..." oninput="renderPOs()">
+    </div>
+  </div>
+
+  <!-- PO list -->
+  <div class="tab-content">
+    <div id="po-list" style="padding:16px 20px"></div>
+  </div>
+
+</div>
+
+<!-- Switch site modal -->
+<div class="modal-overlay" id="switch-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Switch site?</div>
+    <div class="modal-body" id="switch-modal-body"></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="document.getElementById('switch-modal').style.display='none'">Cancel</button>
+      <button class="btn-primary-sm" onclick="confirmSwitch()">Switch</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/purchases.js"></script>
+</body>
+</html>
