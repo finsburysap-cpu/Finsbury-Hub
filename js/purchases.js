@@ -1,5 +1,5 @@
 import { getSupabase } from './supabase.js';
-import { requireAuth, signOutAll, getSession } from './auth.js';
+import { getSession, signOut, setSessionSite } from './auth.js';
 
 const sb = getSupabase();
 let session   = null;
@@ -9,15 +9,14 @@ let allLines  = [];   // po_lines rows
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
-  session = await requireAuth();
-  if (!session) return;
+  session = getSession();
+  if (!session) { window.location.href = 'index.html'; return; }
 
   site = session.site;
   if (!site) { window.location.href = 'site-select.html'; return; }
 
   document.getElementById('site-pill').textContent = site;
-  window.signOutAll = signOutAll;
-
+  
   await loadData();
   updateSyncTimestamp();
 }
@@ -271,10 +270,13 @@ window.switchSite = function() {
 
 window.confirmSwitch = async function() {
   const target = site === 'Nairobi' ? 'Mombasa' : 'Nairobi';
-  const s = JSON.parse(sessionStorage.getItem('ftl_session') || '{}');
-  s.site = target;
-  sessionStorage.setItem('ftl_session', JSON.stringify(s));
-  window.location.reload();
+  setSessionSite(target);
+  window.location.href = 'purchases.html';
+};
+
+window.signOutAll = function() {
+  signOut();
+  window.location.href = 'index.html';
 };
 
 init();
