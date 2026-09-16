@@ -160,7 +160,11 @@ window.renderAR = function() {
   }
 
   // Sort by outstanding descending
+    const agingOrder = { '90': 0, '60': 1, '30': 2, 'current': 3 };
   customers.sort((a, b) => {
+    const agingA = agingOrder[worstAging(a.docs)] ?? 3;
+    const agingB = agingOrder[worstAging(b.docs)] ?? 3;
+    if (agingA !== agingB) return agingA - agingB;
     const netA = a.docs.reduce((s, d) => s + parseFloat(d.amount || 0), 0);
     const netB = b.docs.reduce((s, d) => s + parseFloat(d.amount || 0), 0);
     return netB - netA;
@@ -180,9 +184,8 @@ window.renderAR = function() {
     const maxDays     = inv.length ? Math.max(...inv.map(d => d.days_overdue || 0)) : 0;
     const worst       = worstAging(c.docs);
 
-    const allSorted = [...inv, ...others].sort((a, b) => {
-      const order = { IN:0, CN:1, RC:2, PD:3 };
-      return (order[a.doc_type] || 0) - (order[b.doc_type] || 0);
+    const allSorted = c.docs.slice().sort((a, b) => {
+      return new Date(a.doc_date || 0) - new Date(b.doc_date || 0);
     });
 
     const linesHtml = allSorted.map(d => {
