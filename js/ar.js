@@ -26,8 +26,8 @@ async function loadData() {
   const { data, error } = await sb
     .from('ar_documents')
     .select('*')
-    .eq('site_name', site);
-
+    .eq('site_name', site)
+    .limit(50000);
   if (error) { console.error(error); return; }
   allDocs = data || [];
 
