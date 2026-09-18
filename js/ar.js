@@ -188,6 +188,15 @@ window.renderAR = function() {
   }).join('');
 };
 
+// ── Clear search filter ──────────────────────────────────
+window.clearFilters = function() {
+  document.getElementById('customer-filter').value = '';
+  document.getElementById('slp-filter').value = '';
+  document.getElementById('aging-filter').value = '';
+  document.getElementById('ar-search').value = '';
+  renderAR();
+};
+
 // ── Toggle customer — load docs on demand ──────────────────────────────────
 window.toggleCustomer = async function(code) {
   const el = document.getElementById('cust-' + code);
@@ -373,14 +382,7 @@ window.doRefresh = async function() {
   }
 };
 
-window.clearFilters = function() {
-  document.getElementById('customer-filter').value = '';
-  document.getElementById('slp-filter').value = '';
-  document.getElementById('aging-filter').value = '';
-  document.getElementById('ar-search').value = '';
-  renderAR();
-};
-  
+ 
 // ── Switch site ────────────────────────────────────────────────────────────
 window.switchSite = function() {
   const target = site === 'Nairobi' ? 'Mombasa' : 'Nairobi';
