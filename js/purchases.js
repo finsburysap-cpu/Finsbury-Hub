@@ -183,6 +183,13 @@ window.renderPOs = function() {
     </div>`;
   }).join('');
 };
+// ── Clear PO search ───────────────────────────────────────────────────────
+window.clearFilters = function() {
+  document.getElementById('vendor-filter').value = '';
+  document.getElementById('status-filter').value = '';
+  document.getElementById('po-search').value = '';
+  renderPOs();
+};
 
 // ── Toggle PO detail ───────────────────────────────────────────────────────
 window.togglePO = function(poNumber) {
@@ -283,10 +290,3 @@ window.signOutAll = function() {
 };
 
 init();
-  
-  window.clearFilters = function() {
-  document.getElementById('vendor-filter').value = '';
-  document.getElementById('status-filter').value = '';
-  document.getElementById('po-search').value = '';
-  renderPOs();
-};
