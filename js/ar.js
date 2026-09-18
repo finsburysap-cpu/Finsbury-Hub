@@ -312,13 +312,16 @@ async function updateSyncTimestamp() {
   const dot   = document.getElementById('sync-dot');
   const label = document.getElementById('sync-label');
   if (data && data.length > 0) {
-    const ago = Math.round((Date.now() - new Date(data[0].run_at)) / 60000);
-    dot.className     = 'sync-dot sync-ok';
-    label.textContent = ago < 2 ? 'Just synced' : ago + ' min ago';
-  } else {
-    dot.className     = 'sync-dot sync-warn';
-    label.textContent = 'Unknown';
-  }
+    const mins = Math.round((Date.now() - new Date(data[0].run_at)) / 60000);
+    dot.className = 'sync-dot sync-ok';
+    if (mins < 2) {
+      label.textContent = 'Just synced';
+    } else if (mins < 60) {
+      label.textContent = mins + ' min ago';
+    } else {
+      const hrs = Math.round(mins / 60);
+      label.textContent = hrs + 'h ago';
+    }
 }
 
 // ── Refresh ────────────────────────────────────────────────────────────────
