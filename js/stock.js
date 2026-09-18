@@ -365,6 +365,15 @@ window.renderReplen = function() {
   updateOrderSummary(rows.length);
 };
 
+window.clearFilters = function() {
+  document.getElementById('vendor-select').value = '';
+  document.getElementById('filter-select').value = 'needs';
+  document.getElementById('replen-search').value = '';
+  document.getElementById('target-override-wrap').style.display = 'none';
+  document.getElementById('target-override').value = '';
+  renderReplen();
+};
+
 // ── Slow moving tab ────────────────────────────────
 window.renderSlow = function() {
   var search = (document.getElementById('slow-search').value || '').toLowerCase().trim();
