@@ -264,13 +264,6 @@ window.doRefresh = async function() {
   }
 };
 
-window.clearFilters = function() {
-  document.getElementById('vendor-filter').value = '';
-  document.getElementById('status-filter').value = '';
-  document.getElementById('po-search').value = '';
-  renderPOs();
-};
-  
 // ── Switch site ─────────────────────────────────────────────────────────────
 window.switchSite = function() {
   const target = site === 'Nairobi' ? 'Mombasa' : 'Nairobi';
@@ -290,3 +283,10 @@ window.signOutAll = function() {
 };
 
 init();
+  
+  window.clearFilters = function() {
+  document.getElementById('vendor-filter').value = '';
+  document.getElementById('status-filter').value = '';
+  document.getElementById('po-search').value = '';
+  renderPOs();
+};
