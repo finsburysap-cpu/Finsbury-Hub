@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Outstanding — Finsbury Hub</title>
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+.aging-current  { background:var(--bg-success);  color:var(--text-success);  font-size:11px; padding:2px 8px; border-radius:20px; }
+.aging-30       { background:var(--bg-warning);  color:var(--text-warning);  font-size:11px; padding:2px 8px; border-radius:20px; }
+.aging-60       { background:var(--bg-danger);   color:var(--text-danger);   font-size:11px; padding:2px 8px; border-radius:20px; }
+.aging-90       { background:var(--bg-danger);   color:var(--text-danger);   font-size:11px; padding:2px 8px; border-radius:20px; font-weight:500; }
+.doc-in  { background:var(--bg-danger);  color:var(--text-danger);  font-size:10px; padding:1px 6px; border-radius:10px; }
+.doc-cn  { background:var(--bg-success); color:var(--text-success); font-size:10px; padding:1px 6px; border-radius:10px; }
+.doc-rc  { background:var(--bg-accent);  color:var(--text-accent);  font-size:10px; padding:1px 6px; border-radius:10px; }
+.doc-pd  { background:var(--bg-warning); color:var(--text-warning); font-size:10px; padding:1px 6px; border-radius:10px; }
+.customer-row { cursor:pointer; }
+.customer-row:hover { background:var(--surface-1); }
+</style>
+</head>
+<body>
+<div class="appshell">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="hub.html" class="topbar-back">← Hub</a>
+      <div class="topbar-brand">AR Outstanding</div>
+      <div class="site-pill" id="site-pill"></div>
+    </div>
+    <div class="topbar-right">
+      <div class="sync-status" id="sync-status">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span class="sync-label" id="sync-label">Loading...</span>
+        <button class="btn-refresh" id="btn-refresh" onclick="doRefresh()">
+          <span id="refresh-text">Refresh</span>
+          <span id="refresh-spinner" class="spinner" style="display:none"></span>
+        </button>
+      </div>
+      <button class="btn-ghost-sm" onclick="switchSite()">Switch site</button>
+      <button class="btn-ghost-sm" onclick="doSignOut()">Sign out</button>
+    </div>
+  </header>
+
+  <div class="metrics-row" id="metrics-row">
+    <div class="metric-card">
+      <div class="metric-label">Total outstanding</div>
+      <div class="metric-value" id="m-total">—</div>
+      <div class="metric-sub" id="m-customers-sub">loading...</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Overdue</div>
+      <div class="metric-value red" id="m-overdue">—</div>
+      <div class="metric-sub">past due date</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Payment drafts</div>
+      <div class="metric-value amber" id="m-drafts">—</div>
+      <div class="metric-sub">post-dated cheques</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Net exposed</div>
+      <div class="metric-value" id="m-net">—</div>
+      <div class="metric-sub">outstanding less drafts & receipts</div>
+    </div>
+  </div>
+
+  <!-- Aging tiles -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 20px 16px">
+    <div style="background:var(--surface-1);border-radius:var(--radius);padding:10px 14px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Current</div>
+      <div style="font-size:18px;font-weight:500;color:var(--text-success)" id="ag-current">—</div>
+    </div>
+    <div style="background:var(--surface-1);border-radius:var(--radius);padding:10px 14px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">1 – 30 days</div>
+      <div style="font-size:18px;font-weight:500;color:var(--text-warning)" id="ag-30">—</div>
+    </div>
+    <div style="background:var(--surface-1);border-radius:var(--radius);padding:10px 14px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">31 – 60 days</div>
+      <div style="font-size:18px;font-weight:500;color:var(--text-danger)" id="ag-60">—</div>
+    </div>
+    <div style="background:var(--surface-1);border-radius:var(--radius);padding:10px 14px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">60+ days</div>
+      <div style="font-size:18px;font-weight:500;color:var(--text-danger)" id="ag-90">—</div>
+    </div>
+  </div>
+
+  <div class="view-toolbar" style="padding:10px 20px;border-bottom:1px solid var(--border)">
+    <div class="toolbar-left">
+      <div class="field-inline">
+        <label>Customer</label>
+        <select id="customer-filter" onchange="renderAR()">
+          <option value="">All customers</option>
+        </select>
+      </div>
+      <div class="field-inline">
+        <label>Sales person</label>
+        <select id="slp-filter" onchange="renderAR()">
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="field-inline">
+        <label>Aging</label>
+        <select id="aging-filter" onchange="renderAR()">
+          <option value="">All</option>
+          <option value="current">Current</option>
+          <option value="30">1–30d</option>
+          <option value="60">31–60d</option>
+          <option value="90">60d+</option>
+        </select>
+      </div>
+      <input class="search-input" id="ar-search" placeholder="Search customer..." oninput="renderAR()">
+      <button class="btn-sm btn-apply" onclick="clearFilters()">Clear</button>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn-sm" onclick="exportAR()">Export Excel</button>
+    </div>
+  </div>
+
+  <div class="tab-content">
+    <div id="ar-list" style="padding:16px 20px"></div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="switch-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Switch site?</div>
+    <div class="modal-body" id="switch-modal-body"></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="document.getElementById('switch-modal').style.display='none'">Cancel</button>
+      <button class="btn-primary-sm" onclick="confirmSwitch()">Switch</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/ar.js"></script>
+</body>
+</html>
