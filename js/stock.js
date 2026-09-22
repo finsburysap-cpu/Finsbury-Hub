@@ -9,8 +9,12 @@ const session = getSession();
 if (!session) { window.location.href = 'index.html'; }
 if (!session.site) { window.location.href = 'site-select.html'; }
 
-const site = session.site;
-const sb   = getSupabase();
+const site    = session.site;
+const sb      = getSupabase();
+const params  = new URLSearchParams(window.location.search);
+const company = params.get('company') || 'FTL';
+
+document.title = company + ' Stock Intelligence — Finsbury Hub';
 
 // ── State ──────────────────────────────────────────
 let allData   = [];   // raw stock_metrics rows for this site
@@ -20,7 +24,7 @@ let activeTab = 'replen';
 let lastSynced = null;
 
 // ── Init ───────────────────────────────────────────
-document.getElementById('site-pill').textContent = site;
+document.getElementById('site-pill').textContent = company + ' · ' + site;
 
 async function init() {
   await loadData();
@@ -40,7 +44,8 @@ async function loadData() {
     const { data: metrics, error: e1 } = await sb
       .from('stock_metrics')
       .select('*')
-      .eq('site_name', site);
+      .eq('site_name', site)
+      .eq('company', company);
 
     if (e1) throw e1;
     allData = metrics || [];
@@ -52,6 +57,7 @@ async function loadData() {
         .from('stock_on_hand_detail')
         .select('item_code, whs_code, whs_name, on_hand')
         .eq('site_name', site)
+        .eq('company', company)
         .in('item_code', itemCodes);
 
       if (!e2 && detail) {
