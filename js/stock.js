@@ -278,11 +278,15 @@ window.renderReplen = function() {
            (r.item_code || '').toLowerCase().indexOf(search) > -1;
   });
 
+  var sortBy = document.getElementById('sort-select') ? document.getElementById('sort-select').value : 'cover';
   rows.sort(function(a, b) {
     var vendorA = (a.vendor_name || '').toLowerCase();
     var vendorB = (b.vendor_name || '').toLowerCase();
     if (vendorA < vendorB) return -1;
     if (vendorA > vendorB) return 1;
+    if (sortBy === 'name') {
+      return (a.item_name || '').toLowerCase().localeCompare((b.item_name || '').toLowerCase());
+    }
     var coverA = a.cover_days != null ? a.cover_days : 9999;
     var coverB = b.cover_days != null ? b.cover_days : 9999;
     return coverA - coverB;
@@ -389,11 +393,15 @@ window.renderSlow = function() {
            (r.vendor_name || '').toLowerCase().indexOf(search) > -1;
   });
 
+  var sortBy = document.getElementById('sort-select') ? document.getElementById('sort-select').value : 'cover';
   rows.sort(function(a, b) {
     var vendorA = (a.vendor_name || '').toLowerCase();
     var vendorB = (b.vendor_name || '').toLowerCase();
     if (vendorA < vendorB) return -1;
     if (vendorA > vendorB) return 1;
+    if (sortBy === 'name') {
+      return (a.item_name || '').toLowerCase().localeCompare((b.item_name || '').toLowerCase());
+    }
     var coverA = a.cover_days != null ? a.cover_days : 9999;
     var coverB = b.cover_days != null ? b.cover_days : 9999;
     return coverA - coverB;
@@ -436,14 +444,18 @@ window.renderDead = function() {
            (r.vendor_name || '').toLowerCase().indexOf(search) > -1;
   });
 
+  var sortBy = document.getElementById('sort-select') ? document.getElementById('sort-select').value : 'cover';
   rows.sort(function(a, b) {
     var vendorA = (a.vendor_name || '').toLowerCase();
     var vendorB = (b.vendor_name || '').toLowerCase();
     if (vendorA < vendorB) return -1;
     if (vendorA > vendorB) return 1;
-    var coverA = a.cover_days != null ? a.cover_days : 0;
-    var coverB = b.cover_days != null ? b.cover_days : 0;
-    return coverB - coverA;
+    if (sortBy === 'name') {
+      return (a.item_name || '').toLowerCase().localeCompare((b.item_name || '').toLowerCase());
+    }
+    var coverA = a.cover_days != null ? a.cover_days : 9999;
+    var coverB = b.cover_days != null ? b.cover_days : 9999;
+    return coverA - coverB;
   });
 
   document.getElementById('tc-dead').textContent = rows.length;

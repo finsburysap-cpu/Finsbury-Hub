@@ -91,6 +91,13 @@
 		<option value="">All vendors</option>
 		</select>
 	  </div>
+	  <div class="field-inline">
+       <label>Sort</label>
+       <select id="sort-select" onchange="renderReplen()">
+       <option value="cover">Vendor → Urgency</option>
+       <option value="name">Vendor → A→Z</option>
+       </select>
+      </div>
 	<div class="field-inline" id="target-override-wrap" style="display:none">
 		<label>Target days</label>
 		<input type="number" id="target-override" min="1" max="365" style="width:60px" oninput="renderReplen()">
