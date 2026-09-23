@@ -377,6 +377,7 @@ window.renderReplen = function() {
 
 window.clearFilters = function() {
   document.getElementById('vendor-select').value = '';
+  document.getElementById('sort-select').value = 'cover';
   document.getElementById('filter-select').value = 'needs';
   document.getElementById('replen-search').value = '';
   document.getElementById('target-override-wrap').style.display = 'none';
