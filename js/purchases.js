@@ -279,7 +279,6 @@ window.confirmSwitch = async function() {
 
 init();
 
-import { getSession, signOut, setSessionSite } from './auth.js';
 
 const sb = getSupabase();
 let session   = null;
