@@ -629,6 +629,10 @@ window.exportReplen = function(format) {
     alert('No order quantities entered. Please enter quantities before exporting.');
     return;
   }
+    // Sort alphabetically by item name
+  exportRows.sort(function(a, b) {
+    return (a.item_name || '').toLowerCase().localeCompare((b.item_name || '').toLowerCase());
+  });
 
   var dateLabel   = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
   var vendorLabel = vendor || 'All Vendors';
