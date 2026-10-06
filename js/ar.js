@@ -64,7 +64,7 @@ function populateFilters() {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function fmt(n) {
-  return Math.abs(n).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return Math.abs(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function agingBucket(days) {
