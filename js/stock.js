@@ -265,8 +265,30 @@ function updateMetrics() {
   document.getElementById('m-reorder-sub').textContent = site + ' warehouse';
 }
 
+// ── Weighted rate helper ───────────────────────────
+// Approximates a recency-weighted daily rate from the two fields the view exposes:
+//   daily_rate_90d  = total 90-day average (flat)
+//   daily_rate_30d  = last-30-day average
+// We back-calculate the "older 60 days" qty and split it evenly into two buckets.
+//   last30  qty = daily_rate_30d * 30
+//   older60 qty = (daily_rate_90d * 90) - last30_qty   (mid30 + old30, assumed equal)
+//   mid30   qty ≈ older60_qty / 2
+//   old30   qty ≈ older60_qty / 2
+// Weighted daily rate = (last30 * 0.5/30) + (mid30 * 0.3/30) + (old30 * 0.2/30)
+function weightedDailyRate(r) {
+  var r90 = r.daily_rate_90d || 0;
+  var r30 = r.daily_rate_30d || 0;
+  if (r90 <= 0) return 0;
+  var last30  = r30 * 30;
+  var older60 = Math.max(0, r90 * 90 - last30);
+  var mid30   = older60 / 2;
+  var old30   = older60 / 2;
+  return (last30 * 0.5 / 30) + (mid30 * 0.3 / 30) + (old30 * 0.2 / 30);
+}
+
 // ── Replenishment tab ──────────────────────────────
 window.renderReplen = function() {
+  var rateMethod = document.getElementById('rate-method') ? document.getElementById('rate-method').value : 'avg';
   var vendor = (document.getElementById('vendor-select').value || '').trim();
   var filter = document.getElementById('filter-select').value;
   var search = (document.getElementById('replen-search').value || '').toLowerCase().trim();
@@ -291,6 +313,16 @@ window.renderReplen = function() {
     var coverB = b.cover_days != null ? b.cover_days : 9999;
     return coverA - coverB;
   });
+
+  // Update column header and note bar to reflect active rate method
+  var thRate = document.getElementById('th-rate');
+  var noteBar = document.getElementById('replen-note-bar');
+  if (thRate) thRate.textContent = rateMethod === 'weighted' ? 'Wtd rate' : '90d rate';
+  if (noteBar) {
+    noteBar.textContent = rateMethod === 'weighted'
+      ? 'Weighted rate: last 30d (50%) + days 31–60 (30%) + days 61–90 (20%). Cover and suggested qty recalculated using this rate.'
+      : 'Suggested qty is based on 90-day average daily rate. Trend shows how the last 30 days compare to the 90-day average.';
+  }
 
   document.getElementById('tc-replen').textContent = allData.filter(function(r) { return r.needs_ordering; }).length;
 
@@ -318,30 +350,34 @@ window.renderReplen = function() {
     }
     var effectiveTargetDays = targetDaysOverride || r.target_days || 21;
 
-    // Recalculate suggested qty with override
+    // Recalculate suggested qty with override and rate method
     var deductOpenPo  = document.getElementById('deduct-open-po') && document.getElementById('deduct-open-po').checked;
+    var activeRate = rateMethod === 'weighted' ? weightedDailyRate(r) : (r.daily_rate_90d || 0);
     var suggestPcs = r.suggest_qty_pcs;
-    if (targetDaysOverride && r.daily_rate_90d > 0) {
-      suggestPcs = Math.max(0, Math.round(
-        (targetDaysOverride * r.daily_rate_90d) - r.stock_on_hand - (deductOpenPo ? r.open_po_qty : 0)
-      ));
-    } else if (deductOpenPo && r.daily_rate_90d > 0) {
-      suggestPcs = Math.max(0, Math.round(
-        (r.target_days * r.daily_rate_90d) - r.stock_on_hand - r.open_po_qty
-      ));
+    if (rateMethod === 'weighted' || targetDaysOverride || deductOpenPo) {
+      if (activeRate > 0) {
+        suggestPcs = Math.max(0, Math.round(
+          (effectiveTargetDays * activeRate) - r.stock_on_hand - (deductOpenPo ? (r.open_po_qty || 0) : 0)
+        ));
+      }
     }
 	
     var suggestCtn = suggestPcs && ctn ? Math.ceil(suggestPcs / ctn) + ' ctn' : '';
-    var coverStr   = r.cover_days != null ? r.cover_days + 'd' : '—';
-    var coverColor = r.cover_days == null ? '' :
-      r.cover_days < effectiveTargetDays * 0.5 ? 'color:var(--red);font-weight:500' :
-      r.cover_days < effectiveTargetDays       ? 'color:var(--amber);font-weight:500' : '';
+    // When weighted mode, recalculate cover from weighted rate so it's consistent
+    var coverDays = r.cover_days;
+    if (rateMethod === 'weighted' && activeRate > 0 && r.stock_on_hand != null) {
+      coverDays = Math.round(r.stock_on_hand / activeRate);
+    }
+    var coverStr   = coverDays != null ? coverDays + 'd' : '—';
+    var coverColor = coverDays == null ? '' :
+      coverDays < effectiveTargetDays * 0.5 ? 'color:var(--red);font-weight:500' :
+      coverDays < effectiveTargetDays       ? 'color:var(--amber);font-weight:500' : '';
 
     var suggestCell = '';
     if (suggestPcs > 0) {
       suggestCell = '<span style="font-family:\'DM Mono\',monospace;font-weight:500">' + Number(suggestPcs).toFixed(2) + ' ' + (r.inv_uom || 'pcs') + '</span>' +
         (suggestCtn ? '<br><small style="color:var(--text-muted)">' + suggestCtn + '</small>' : '');
-    } else if (r.needs_ordering && (!r.daily_rate_90d || r.daily_rate_90d === 0)) {
+    } else if (r.needs_ordering && activeRate === 0) {
       suggestCell = '<span style="color:var(--amber);font-size:11px">No sales history</span>';
     } else {
       suggestCell = '<span style="color:var(--text-muted)">—</span>';
@@ -354,7 +390,7 @@ window.renderReplen = function() {
         (ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
         '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
       '<td style="' + coverColor + '">' + coverStr + '</td>' +
-      '<td style="font-family:\'DM Mono\',monospace">' + (r.daily_rate_90d ? r.daily_rate_90d.toFixed(1) + '/d' : '—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace">' + (activeRate > 0 ? activeRate.toFixed(1) + '/d' : '—') + '</td>' +
       '<td>' + trendHtml(r.trend_pct) + '</td>' +
       '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace;font-size:12px">' +
