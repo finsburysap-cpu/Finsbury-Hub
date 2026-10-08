@@ -67,6 +67,12 @@ function fmt(n) {
   return Math.abs(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function fmtSigned(n) {
+  // Shows negative numbers with minus sign (for credits/payments)
+  const abs = Math.abs(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? '-' : '') + 'KES ' + abs;
+}
+
 function agingBucket(days) {
   if (!days || days <= 0) return 'current';
   if (days <= 30) return '30';
@@ -89,6 +95,17 @@ function agingBadgeHtml(bucket) {
 function docBadge(type) {
   const cls = { IN:'doc-in', CN:'doc-cn', RC:'doc-rc', PD:'doc-pd' }[type] || 'doc-in';
   return '<span class="' + cls + '">' + type + '</span>';
+}
+
+// Calculate days difference between due_date and today
+// Positive = overdue, negative = days until due
+function calcDaysOverdue(dueDateStr) {
+  if (!dueDateStr) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDateStr);
+  due.setHours(0, 0, 0, 0);
+  return Math.round((today - due) / (1000 * 60 * 60 * 24));
 }
 
 // ── Metrics ────────────────────────────────────────────────────────────────
@@ -173,7 +190,7 @@ window.renderAR = function() {
         '</div>' +
         '<div style="text-align:right">' +
           '<div style="font-size:13px;font-weight:500;font-family:\'DM Mono\',monospace">KES ' + fmt(outstanding) + '</div>' +
-          '<div style="font-size:11px;color:var(--text-muted)">' + (drafts > 0 ? 'Drafts: KES ' + fmt(drafts) : '') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted)" id="due-now-' + c.card_code + '"></div>' +
         '</div>' +
         '<div style="text-align:right;font-size:12px;color:var(--text-secondary)">' + invCount + ' inv</div>' +
         '<div style="text-align:right;font-size:12px;color:' + (maxDays > 0 ? 'var(--text-danger)' : 'var(--text-muted)') + '">' +
@@ -226,26 +243,93 @@ window.toggleCustomer = async function(code) {
     return;
   }
 
+  // Calculate totals
+  let totalOutstanding = 0;
+  let dueNow = 0;
+
   const linesHtml = data.map(d => {
     const amt      = parseFloat(d.amount || 0);
-    const amtColor = amt < 0 ? 'color:var(--text-success)' : '';
     const dateStr  = d.doc_date ? new Date(d.doc_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—';
     const dueStr   = d.due_date ? new Date(d.due_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—';
-    const overdue  = d.days_overdue != null && d.days_overdue > 0
-      ? '<span style="color:var(--text-danger)">' + d.days_overdue + 'd</span>' : '—';
 
-    return '<tr style="border-top:0.5px solid var(--border)">' +
+    // Calculate days overdue from due_date (positive=overdue, negative=days until due)
+    const daysOverdue = calcDaysOverdue(d.due_date);
+
+    // Accumulate totals
+    totalOutstanding += amt;
+    if (daysOverdue !== null && daysOverdue >= 0) {
+      dueNow += amt;
+    }
+
+    // Days overdue display
+    let overdueHtml = '—';
+    if (d.doc_type === 'IN' || d.doc_type === 'CN') {
+      if (daysOverdue === null) {
+        overdueHtml = '—';
+      } else if (daysOverdue > 0) {
+        overdueHtml = '<span style="color:var(--text-danger);font-weight:500">' + daysOverdue + 'd overdue</span>';
+      } else if (daysOverdue === 0) {
+        overdueHtml = '<span style="color:var(--text-warning,#b45309);font-weight:500">Due today</span>';
+      } else {
+        overdueHtml = '<span style="color:var(--text-muted)">In ' + Math.abs(daysOverdue) + 'd</span>';
+      }
+    }
+
+    // Row highlight for overdue invoices
+    const rowStyle = (d.doc_type === 'IN' && daysOverdue !== null && daysOverdue > 0)
+      ? 'border-top:0.5px solid var(--border);background:rgba(220,38,38,0.04)'
+      : 'border-top:0.5px solid var(--border)';
+
+    const amtColor = amt < 0 ? 'color:var(--text-success)' : '';
+
+    return '<tr style="' + rowStyle + '">' +
       '<td style="padding:5px 8px">' + docBadge(d.doc_type) + '</td>' +
       '<td style="padding:5px 8px;font-family:\'DM Mono\',monospace;color:var(--text-secondary)">' + d.doc_number + '</td>' +
       '<td style="padding:5px 8px;color:var(--text-secondary)">' + dateStr + '</td>' +
       '<td style="padding:5px 8px;color:var(--text-secondary)">' + dueStr + '</td>' +
       '<td style="padding:5px 8px;color:var(--text-muted);font-size:11px;white-space:normal">' + (d.memo || '—') + '</td>' +
       '<td style="padding:5px 8px;text-align:right;font-family:\'DM Mono\',monospace;' + amtColor + '">' +
-        (amt < 0 ? '-' : '') + 'KES ' + fmt(Math.abs(amt)) +
+        fmtSigned(amt) +
       '</td>' +
-      '<td style="padding:5px 8px;text-align:right">' + (d.doc_type === 'IN' ? overdue : '—') + '</td>' +
+      '<td style="padding:5px 8px;text-align:right;font-size:11px">' + overdueHtml + '</td>' +
     '</tr>';
   }).join('');
+
+  // Update the "Due Now" label on the summary row
+  const dueNowEl = document.getElementById('due-now-' + code);
+  if (dueNowEl) {
+    if (dueNow > 0) {
+      dueNowEl.innerHTML = '<span style="color:var(--text-danger)">Due now: KES ' + fmt(dueNow) + '</span>';
+    } else {
+      dueNowEl.textContent = 'Nothing due yet';
+    }
+  }
+
+  // Totals footer
+  const notYetDue = totalOutstanding - dueNow;
+  const totalsHtml =
+    '<tr style="border-top:2px solid var(--border);background:var(--surface-2,var(--surface))">' +
+      '<td colspan="5" style="padding:7px 8px;font-size:11px;font-weight:600;color:var(--text-primary)">Due Now (due date ≤ today)</td>' +
+      '<td style="padding:7px 8px;text-align:right;font-family:\'DM Mono\',monospace;font-weight:700;color:var(--text-danger)">' +
+        'KES ' + fmt(dueNow) +
+      '</td>' +
+      '<td></td>' +
+    '</tr>' +
+    (notYetDue > 0 ?
+    '<tr style="background:var(--surface-2,var(--surface))">' +
+      '<td colspan="5" style="padding:4px 8px;font-size:11px;color:var(--text-muted)">Not yet due</td>' +
+      '<td style="padding:4px 8px;text-align:right;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text-muted)">' +
+        'KES ' + fmt(notYetDue) +
+      '</td>' +
+      '<td></td>' +
+    '</tr>' : '') +
+    '<tr style="background:var(--surface-2,var(--surface));border-top:0.5px solid var(--border)">' +
+      '<td colspan="5" style="padding:7px 8px;font-size:12px;font-weight:700;color:var(--text-primary)">Total Outstanding</td>' +
+      '<td style="padding:7px 8px;text-align:right;font-family:\'DM Mono\',monospace;font-weight:700;font-size:13px">' +
+        'KES ' + fmt(totalOutstanding) +
+      '</td>' +
+      '<td></td>' +
+    '</tr>';
 
   el.innerHTML =
     '<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed">' +
@@ -254,11 +338,11 @@ window.toggleCustomer = async function(code) {
         '<th style="text-align:left;padding:4px 8px;font-weight:500;width:8%">Doc no.</th>' +
         '<th style="text-align:left;padding:4px 8px;font-weight:500;width:12%">Date</th>' +
         '<th style="text-align:left;padding:4px 8px;font-weight:500;width:12%">Due date</th>' +
-        '<th style="text-align:left;padding:4px 8px;font-weight:500;width:32%">Memo</th>' +
+        '<th style="text-align:left;padding:4px 8px;font-weight:500;width:30%">Memo</th>' +
         '<th style="text-align:right;padding:4px 8px;font-weight:500;width:18%">Amount</th>' +
-        '<th style="text-align:right;padding:4px 8px;font-weight:500;width:12%">Overdue</th>' +
+        '<th style="text-align:right;padding:4px 8px;font-weight:500;width:14%">Status</th>' +
       '</tr></thead>' +
-      '<tbody>' + linesHtml + '</tbody>' +
+      '<tbody>' + linesHtml + totalsHtml + '</tbody>' +
     '</table>';
 
   el.dataset.loaded = 'true';
@@ -287,14 +371,17 @@ window.exportAR = async function() {
     from += pageSize;
   }
   if (search) docs = docs.filter(d => d.card_name.toLowerCase().includes(search));
+
   const wsData = [
     ['FINSBURY TRADING LTD — AR OUTSTANDING'],
     ['Date: ' + dateLabel + '   Site: ' + site + (slpF ? '   Sales person: ' + slpF : '')],
     [],
-    ['Type','Doc no.','Customer','Date','Due date','Payment terms','Amount (KES)','Days overdue','Sales person']
+    ['Type','Doc no.','Customer','Date','Due date','Payment terms','Amount (KES)','Days overdue','Due now?','Sales person']
   ];
 
   docs.forEach(d => {
+    const daysOverdue = calcDaysOverdue(d.due_date);
+    const dueNow = (daysOverdue !== null && daysOverdue >= 0) ? 'Yes' : 'No';
     wsData.push([
       d.doc_type,
       d.doc_number,
@@ -303,14 +390,15 @@ window.exportAR = async function() {
       d.due_date || '',
       d.payment_terms || '',
       parseFloat(d.amount || 0),
-      d.days_overdue || '',
+      daysOverdue !== null ? daysOverdue : '',
+      dueNow,
       d.sales_person || ''
     ]);
   });
 
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [{wch:5},{wch:10},{wch:35},{wch:12},{wch:12},{wch:18},{wch:16},{wch:14},{wch:20}];
+  ws['!cols'] = [{wch:5},{wch:10},{wch:35},{wch:12},{wch:12},{wch:18},{wch:16},{wch:14},{wch:10},{wch:20}];
   XLSX.utils.book_append_sheet(wb, ws, 'AR Outstanding');
   XLSX.writeFile(wb, 'ar_outstanding_' + site + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
 };
@@ -383,7 +471,6 @@ window.doRefresh = async function() {
   }
 };
 
- 
 // ── Switch site ────────────────────────────────────────────────────────────
 window.switchSite = function() {
   const target = site === 'Nairobi' ? 'Mombasa' : 'Nairobi';
