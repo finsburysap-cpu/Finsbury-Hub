@@ -252,8 +252,11 @@ window.toggleCustomer = async function(code) {
     const dateStr  = d.doc_date ? new Date(d.doc_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—';
     const dueStr   = d.due_date ? new Date(d.due_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—';
 
-    // Calculate days overdue from due_date (positive=overdue, negative=days until due)
-    const daysOverdue = calcDaysOverdue(d.due_date);
+    // For PD rows with no due_date, fall back to doc_date (already received)
+    const effectiveDueDate = d.due_date || (d.doc_type === 'PD' ? d.doc_date : null);
+
+    // Calculate days overdue from effective due date (positive=overdue, negative=days until due)
+    const daysOverdue = calcDaysOverdue(effectiveDueDate);
 
     // Accumulate totals
     totalOutstanding += amt;
@@ -263,7 +266,9 @@ window.toggleCustomer = async function(code) {
 
     // Days overdue display
     let overdueHtml = '—';
-    if (d.doc_type === 'IN' || d.doc_type === 'CN') {
+    if (d.doc_type === 'PD') {
+      overdueHtml = '<span style="color:var(--text-muted)">Received</span>';
+    } else if (d.doc_type === 'IN' || d.doc_type === 'CN') {
       if (daysOverdue === null) {
         overdueHtml = '—';
       } else if (daysOverdue > 0) {
@@ -275,7 +280,7 @@ window.toggleCustomer = async function(code) {
       }
     }
 
-    // Row highlight for overdue invoices
+    // Row highlight for overdue invoices only (not PD/RC)
     const rowStyle = (d.doc_type === 'IN' && daysOverdue !== null && daysOverdue > 0)
       ? 'border-top:0.5px solid var(--border);background:rgba(220,38,38,0.04)'
       : 'border-top:0.5px solid var(--border)';
