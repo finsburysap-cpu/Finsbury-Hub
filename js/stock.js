@@ -286,6 +286,7 @@ function weightedDailyRate(r) {
   return (last30 * 0.5 / 30) + (mid30 * 0.3 / 30) + (old30 * 0.2 / 30);
 }
 
+
 // ── Replenishment tab ──────────────────────────────
 window.renderReplen = function() {
   var rateMethod = document.getElementById('rate-method') ? document.getElementById('rate-method').value : 'avg';
@@ -321,7 +322,7 @@ window.renderReplen = function() {
   if (noteBar) {
     noteBar.textContent = rateMethod === 'weighted'
       ? 'Weighted rate: last 30d (50%) + days 31–60 (30%) + days 61–90 (20%). Cover and suggested qty recalculated using this rate.'
-      : 'Suggested qty is based on 90-day average daily rate. Trend shows how the last 30 days compare to the 90-day average.';
+      : 'Avg 90d rate: total qty sold over 90 calendar days. Suggested qty recalculated from this rate.';
   }
 
   document.getElementById('tc-replen').textContent = allData.filter(function(r) { return r.needs_ordering; }).length;
@@ -330,7 +331,7 @@ window.renderReplen = function() {
   tbody.innerHTML = '';
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No items found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty-state">No items found</td></tr>';
     updateOrderSummary(0);
     return;
   }
@@ -352,14 +353,16 @@ window.renderReplen = function() {
 
     // Recalculate suggested qty with override and rate method
     var deductOpenPo  = document.getElementById('deduct-open-po') && document.getElementById('deduct-open-po').checked;
-    var activeRate = rateMethod === 'weighted' ? weightedDailyRate(r) : (r.daily_rate_90d || 0);
-    var suggestPcs = r.suggest_qty_pcs;
-    if (rateMethod === 'weighted' || targetDaysOverride || deductOpenPo) {
-      if (activeRate > 0) {
-        suggestPcs = Math.max(0, Math.round(
-          (effectiveTargetDays * activeRate) - r.stock_on_hand - (deductOpenPo ? (r.open_po_qty || 0) : 0)
-        ));
-      }
+    var activeRate = rateMethod === 'weighted' ? weightedDailyRate(r)
+                   :                            (r.daily_rate_90d || 0);
+    // Always recalculate from activeRate so all three modes are consistent
+    var suggestPcs = 0;
+    if (activeRate > 0) {
+      suggestPcs = Math.max(0, Math.round(
+        (effectiveTargetDays * activeRate) - r.stock_on_hand - (deductOpenPo ? (r.open_po_qty || 0) : 0)
+      ));
+    } else {
+      suggestPcs = r.suggest_qty_pcs || 0; // fallback if no rate
     }
 	
     var suggestCtn = suggestPcs && ctn ? Math.ceil(suggestPcs / ctn) + ' ctn' : '';
@@ -390,6 +393,7 @@ window.renderReplen = function() {
         (ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
         '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
       '<td style="' + coverColor + '">' + coverStr + '</td>' +
+      '<td style="color:var(--text-muted)">' + (effectiveTargetDays ? effectiveTargetDays + 'd' : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace">' + (activeRate > 0 ? activeRate.toFixed(1) + '/d' : '—') + '</td>' +
       '<td>' + trendHtml(r.trend_pct) + '</td>' +
       '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
