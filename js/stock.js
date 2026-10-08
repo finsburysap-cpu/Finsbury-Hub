@@ -314,7 +314,7 @@ window.renderReplen = function() {
   tbody.innerHTML = '';
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="empty-state">No items found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No items found</td></tr>';
     updateOrderSummary(0);
     return;
   }
@@ -373,7 +373,6 @@ window.renderReplen = function() {
         (ctn > 0 && r.stock_on_hand > 0 ? '<br><small style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.stock_on_hand / ctn).toFixed(2) + ' ctn</small>' : '') +
         '<button class="btn-expand" style="margin-left:4px" onclick="showWhsDetail(\'' + key + '\',\'' + r.item_name.replace(/'/g, "\\'") + '\')">▾</button></td>' +
       '<td style="' + coverColor + '">' + coverStr + '</td>' +
-      '<td style="color:var(--text-muted)">' + (effectiveTargetDays ? effectiveTargetDays + 'd' : '—') + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace">' + (activeRate > 0 ? activeRate.toFixed(1) + '/d' : '—') + '</td>' +
       '<td>' + trendHtml(r.trend_pct) + '</td>' +
       '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
