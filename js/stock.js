@@ -343,12 +343,9 @@ window.renderReplen = function() {
     var savedCtn = savedPcs && ctn ? Math.ceil(savedPcs / ctn) : '';
     var ek       = key.replace(/[^a-zA-Z0-9]/g, '_');
 
-    // Target days override
-    var targetDaysOverride = null;
+    // Target days override — always active when filled, regardless of vendor filter
     var overrideInput = document.getElementById('target-override');
-    if (vendor && overrideInput && overrideInput.value) {
-      targetDaysOverride = parseFloat(overrideInput.value);
-    }
+    var targetDaysOverride = (overrideInput && overrideInput.value) ? parseFloat(overrideInput.value) : null;
     var effectiveTargetDays = targetDaysOverride || r.target_days || 21;
 
     // Recalculate suggested qty with override and rate method

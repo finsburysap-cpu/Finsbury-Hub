@@ -91,6 +91,10 @@
             </select>
           </div>
           <input class="search-input" id="replen-search" placeholder="Search items...">
+          <div class="field-inline" id="target-override-wrap">
+            <label>Target days</label>
+            <input type="number" id="target-override" min="1" max="365" placeholder="e.g. 21" style="width:60px" oninput="renderReplen()">
+          </div>
           <div class="field-inline">
             <label>Rate</label>
             <select id="rate-method" onchange="renderReplen()">
