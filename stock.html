@@ -90,6 +90,13 @@
               <option value="all">All items</option>
             </select>
           </div>
+          <div class="field-inline">
+            <label>Sort</label>
+            <select id="sort-select" onchange="renderReplen()">
+              <option value="cover">Cover (low first)</option>
+              <option value="name">A–Z</option>
+            </select>
+          </div>
           <input class="search-input" id="replen-search" placeholder="Search items...">
           <div class="field-inline" id="target-override-wrap" style="display:none">
             <label>Target days</label>
@@ -106,6 +113,9 @@
         </div>
         <div class="toolbar-right">
           <span class="order-summary" id="order-summary"></span>
+          <label class="field-inline" style="gap:6px;cursor:pointer">
+            <input type="checkbox" id="include-weight"> Include weight
+          </label>
           <button class="btn-sm" onclick="exportReplen('xlsx')">Export Excel</button>
           <button class="btn-sm" onclick="exportReplen('pdf')">Export PDF</button>
         </div>

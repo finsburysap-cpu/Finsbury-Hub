@@ -294,8 +294,24 @@ window.renderReplen = function() {
   var filter = document.getElementById('filter-select').value;
   var search = (document.getElementById('replen-search').value || '').toLowerCase().trim();
 
-  var rows = filter === 'all' ? allData.slice() : allData.filter(function(r) { return r.needs_ordering; });
+  // Pre-compute effective target days and suggested qty for each row so the
+  // "Needs ordering" filter uses the same recalculated value shown in the table.
+  var overrideInput = document.getElementById('target-override');
+  var targetDaysOverride = (overrideInput && overrideInput.value) ? parseFloat(overrideInput.value) : null;
+  var deductOpenPo = document.getElementById('deduct-open-po') && document.getElementById('deduct-open-po').checked;
+
+  function computeSuggest(r) {
+    var etd = targetDaysOverride || r.target_days || 21;
+    var rate = rateMethod === 'weighted' ? weightedDailyRate(r) : (r.daily_rate_90d || 0);
+    if (rate > 0) {
+      return Math.max(0, Math.round((etd * rate) - r.stock_on_hand - (deductOpenPo ? (r.open_po_qty || 0) : 0)));
+    }
+    return r.suggest_qty_pcs || 0;
+  }
+
+  var rows = allData.slice();
   if (vendor) rows = rows.filter(function(r) { return (r.vendor_name || '').trim() === vendor; });
+  if (filter === 'needs') rows = rows.filter(function(r) { return computeSuggest(r) > 0; });
   if (search) rows = rows.filter(function(r) {
     return r.item_name.toLowerCase().indexOf(search) > -1 ||
            (r.item_code || '').toLowerCase().indexOf(search) > -1;
@@ -303,10 +319,6 @@ window.renderReplen = function() {
 
   var sortBy = document.getElementById('sort-select') ? document.getElementById('sort-select').value : 'cover';
   rows.sort(function(a, b) {
-    var vendorA = (a.vendor_name || '').toLowerCase();
-    var vendorB = (b.vendor_name || '').toLowerCase();
-    if (vendorA < vendorB) return -1;
-    if (vendorA > vendorB) return 1;
     if (sortBy === 'name') {
       return (a.item_name || '').toLowerCase().localeCompare((b.item_name || '').toLowerCase());
     }
@@ -343,13 +355,8 @@ window.renderReplen = function() {
     var savedCtn = savedPcs && ctn ? Math.ceil(savedPcs / ctn) : '';
     var ek       = key.replace(/[^a-zA-Z0-9]/g, '_');
 
-    // Target days override — always active when filled, regardless of vendor filter
-    var overrideInput = document.getElementById('target-override');
-    var targetDaysOverride = (overrideInput && overrideInput.value) ? parseFloat(overrideInput.value) : null;
     var effectiveTargetDays = targetDaysOverride || r.target_days || 21;
 
-    // Recalculate suggested qty with override and rate method
-    var deductOpenPo  = document.getElementById('deduct-open-po') && document.getElementById('deduct-open-po').checked;
     var activeRate = rateMethod === 'weighted' ? weightedDailyRate(r)
                    :                            (r.daily_rate_90d || 0);
     // Always recalculate from activeRate so all three modes are consistent
@@ -674,7 +681,8 @@ window.exportReplen = function(format) {
   var vendorLabel = vendor || 'All Vendors';
   var siteLabel   = site || '';
   var preparedBy  = session ? (session.name || session.email || '') : '';
-  var includeWeight = document.getElementById('include-weight').checked;
+  var includeWeightEl = document.getElementById('include-weight');
+  var includeWeight = includeWeightEl ? includeWeightEl.checked : false;
 
   if (format === 'xlsx') {
     var headers = ['#', 'Item Name', 'Order Qty (Pcs)', 'Order Qty (Ctn)'];
