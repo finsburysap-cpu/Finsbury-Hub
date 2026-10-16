@@ -400,10 +400,7 @@ window.renderReplen = function() {
       '<td style="font-family:\'DM Mono\',monospace">' + (activeRate > 0 ? activeRate.toFixed(1) + '/d' : '—') + '</td>' +
       '<td>' + trendHtml(r.trend_pct) + '</td>' +
       '<td style="color:var(--text-muted);font-family:\'DM Mono\',monospace">' + (r.open_po_qty > 0 ? fmt(r.open_po_qty) : '—') + '</td>' +
-      '<td style="font-family:\'DM Mono\',monospace;font-size:12px">' +
-        (r.last_purchase_price ? (r.last_purchase_currency || '') + ' ' + Number(r.last_purchase_price).toFixed(2) +
-          (r.last_purchase_date ? '<br><small style="color:var(--text-muted)">' + new Date(r.last_purchase_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + '</small>' : '')
-        : '—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace;font-size:12px">' + priceCell(r) + '</td>' +
       '<td>' + suggestCell + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace;font-size:12px" id="weight-' + ek + '">—</td>' +
       '<td><div class="order-cell">' +
@@ -877,6 +874,42 @@ window.signOutAll = function() {
 };
 
 // ── Helpers ────────────────────────────────────────
+
+/**
+ * Renders the "Last price" cell for a stock row.
+ *
+ * Logic:
+ *  - If landed_cost_price exists: show it as the primary price with a
+ *    "Landed" label, and show the GRN price underneath as a secondary line.
+ *    This is the true cost for USD/import items (GRN price + allocated
+ *    freight/duty/insurance).
+ *  - Otherwise: show the GRN price (last received price from OPDN/PDN1).
+ *  - Both cases include the purchase date as a small line.
+ */
+function priceCell(r) {
+  if (!r.last_purchase_price) return '—';
+
+  var cur  = r.last_purchase_currency || '';
+  var date = r.last_purchase_date
+    ? '<br><small style="color:var(--text-muted)">' +
+        new Date(r.last_purchase_date).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) +
+      '</small>'
+    : '';
+
+  if (r.landed_cost_price) {
+    // USD/import item — show landed cost as primary, GRN as secondary
+    return '<span title="Landed cost (GRN price + freight/duty/insurance)">' +
+             cur + ' ' + Number(r.landed_cost_price).toFixed(2) +
+             ' <small style="color:var(--text-muted);font-size:10px">landed</small>' +
+           '</span>' +
+           '<br><small style="color:var(--text-muted)">GRN ' + cur + ' ' + Number(r.last_purchase_price).toFixed(2) + '</small>' +
+           date;
+  }
+
+  // Local/non-landed item — show GRN price only
+  return cur + ' ' + Number(r.last_purchase_price).toFixed(2) + date;
+}
+
 function fmt(n) {
   if (n == null || n === '') return '—';
   return Math.round(n).toLocaleString();
