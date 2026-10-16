@@ -897,9 +897,9 @@ function priceCell(r) {
     : '';
 
   if (r.landed_cost_price) {
-    // USD/import item — show landed cost as primary, GRN as secondary
-    return '<span title="Landed cost (GRN price + freight/duty/insurance)">' +
-             cur + ' ' + Number(r.landed_cost_price).toFixed(2) +
+    // USD/import item — landed cost is in KES (local currency), GRN price in original currency
+    return '<span title="Landed cost in KES (freight/duty/insurance included)">' +
+             'KES ' + Number(r.landed_cost_price).toFixed(2) +
              ' <small style="color:var(--text-muted);font-size:10px">landed</small>' +
            '</span>' +
            '<br><small style="color:var(--text-muted)">GRN ' + cur + ' ' + Number(r.last_purchase_price).toFixed(2) + '</small>' +
