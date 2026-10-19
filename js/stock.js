@@ -639,10 +639,12 @@ function updateOrderSummary() {
   document.getElementById('order-summary').textContent =
     count > 0 ? count + ' item' + (count !== 1 ? 's' : '') + ' with quantities' : '';
 
+  var tileEl   = document.getElementById('m-order-tile');
   var weightEl = document.getElementById('m-order-weight');
   var itemsEl  = document.getElementById('m-order-items');
-  if (weightEl) weightEl.textContent = totalWeight > 0 ? totalWeight.toFixed(2) + ' kg' : '0.00 kg';
-  if (itemsEl)  itemsEl.textContent  = count + ' item' + (count !== 1 ? 's' : '');
+  if (tileEl)   tileEl.style.display   = count > 0 ? '' : 'none';
+  if (weightEl) weightEl.textContent   = totalWeight > 0 ? totalWeight.toFixed(2) + ' kg' : '0.00 kg';
+  if (itemsEl)  itemsEl.textContent    = count + ' item' + (count !== 1 ? 's' : '');
 }
 window.clearOrder = function() {
   if (Object.keys(orderQtys).length === 0) return;
