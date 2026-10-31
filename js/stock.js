@@ -301,12 +301,14 @@ window.renderReplen = function() {
   var deductOpenPo = document.getElementById('deduct-open-po') && document.getElementById('deduct-open-po').checked;
 
   function computeSuggest(r) {
-    var etd = targetDaysOverride || r.target_days || 21;
-    var rate = rateMethod === 'weighted' ? weightedDailyRate(r) : (r.daily_rate_90d || 0);
+    var etd   = targetDaysOverride || r.target_days || 21;
+    var rate  = rateMethod === 'weighted' ? weightedDailyRate(r) : (r.daily_rate_90d || 0);
+    var stock = r.stock_on_hand != null ? r.stock_on_hand : 0;  // treat null as 0
     if (rate > 0) {
-      return Math.max(0, Math.round((etd * rate) - r.stock_on_hand - (deductOpenPo ? (r.open_po_qty || 0) : 0)));
+      return Math.max(0, Math.round((etd * rate) - stock - (deductOpenPo ? (r.open_po_qty || 0) : 0)));
     }
-    return r.suggest_qty_pcs || 0;
+    // No sales history — show if stock is zero or below
+    return (stock <= 0 && r.suggest_qty_pcs) ? r.suggest_qty_pcs : 0;
   }
 
   var rows = allData.slice();
@@ -322,8 +324,11 @@ window.renderReplen = function() {
     if (sortBy === 'name') {
       return (a.item_name || '').toLowerCase().localeCompare((b.item_name || '').toLowerCase());
     }
-    var coverA = a.cover_days != null ? a.cover_days : 9999;
-    var coverB = b.cover_days != null ? b.cover_days : 9999;
+    // Zero/null stock = most urgent — sort to top (-1 beats any positive cover)
+    var stockA = a.stock_on_hand != null ? a.stock_on_hand : 0;
+    var stockB = b.stock_on_hand != null ? b.stock_on_hand : 0;
+    var coverA = stockA <= 0 ? -1 : (a.cover_days != null ? a.cover_days : 9999);
+    var coverB = stockB <= 0 ? -1 : (b.cover_days != null ? b.cover_days : 9999);
     return coverA - coverB;
   });
 
