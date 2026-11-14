@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stock Intelligence — Finsbury Hub</title>
 <link rel="stylesheet" href="style.css">
+<style>
+  .btn-sm.btn-outline{background:transparent;border:1px solid var(--border,#cbd5e1);color:var(--text,#1e293b)}
+  .btn-sm.btn-outline:hover{background:var(--surface2,#f1f5f9)}
+</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -57,11 +59,6 @@
       <div class="metric-value amber" id="m-dead">—</div>
       <div class="metric-sub">no sales in 30 days</div>
     </div>
-    <div class="metric-card" id="m-order-tile" style="display:none;border-left:3px solid var(--green,#22c55e)">
-      <div class="metric-label">Order weight</div>
-      <div class="metric-value" id="m-order-weight">0.00 kg</div>
-      <div class="metric-sub"><span id="m-order-items">0 items</span> in order</div>
-    </div>
   </div>
 
   <!-- Tabs -->
@@ -86,7 +83,7 @@
         <div class="toolbar-left">
           <div class="field-inline">
             <label>Vendor</label>
-            <select id="vendor-select" onchange="onVendorChange()">
+            <select id="vendor-select">
               <option value="">All vendors</option>
             </select>
           </div>
@@ -97,18 +94,7 @@
               <option value="all">All items</option>
             </select>
           </div>
-          <div class="field-inline">
-            <label>Sort</label>
-            <select id="sort-select" onchange="renderReplen()">
-              <option value="cover">Cover (low first)</option>
-              <option value="name">A–Z</option>
-            </select>
-          </div>
           <input class="search-input" id="replen-search" placeholder="Search items...">
-          <div class="field-inline" id="target-override-wrap" style="display:none">
-            <label>Target days</label>
-            <input type="number" id="target-override" min="1" max="365" style="width:60px" oninput="renderReplen()">
-          </div>
           <div class="field-inline">
             <label>Rate</label>
             <select id="rate-method" onchange="renderReplen()">
@@ -117,14 +103,10 @@
             </select>
           </div>
           <button class="btn-sm btn-apply" onclick="renderReplen()">Apply</button>
-          <button class="btn-sm" onclick="clearFilters()">Clear filters</button>
         </div>
         <div class="toolbar-right">
           <span class="order-summary" id="order-summary"></span>
-          <label class="field-inline" style="gap:6px;cursor:pointer">
-            <input type="checkbox" id="include-weight"> Include weight
-          </label>
-          <button class="btn-sm" onclick="clearOrder()">Clear order</button>
+          <button class="btn-sm btn-outline" onclick="openStockListExport()">Export stock list</button>
           <button class="btn-sm" onclick="exportReplen('xlsx')">Export Excel</button>
           <button class="btn-sm" onclick="exportReplen('pdf')">Export PDF</button>
         </div>
@@ -135,16 +117,16 @@
           <thead>
             <tr>
               <th style="width:22%">Item</th>
-              <th style="width:9%">Stock</th>
+              <th style="width:8%">Group</th>
+              <th style="width:8%">Stock</th>
               <th style="width:7%">Cover</th>
-              <th style="width:9%" id="th-rate">Daily rate</th>
-              <th style="width:6%">Trend</th>
-              <th style="width:6%">Open PO</th>
-              <th style="width:9%">Last price</th>
-              <th style="width:9%">Suggested</th>
-              <th style="width:6%">Weight</th>
-              <th style="width:9%">Order qty</th>
-              <th style="width:5%">Status</th>
+              <th style="width:7%">Target</th>
+              <th style="width:10%" id="th-rate">Daily rate</th>
+              <th style="width:7%">Trend</th>
+              <th style="width:9%">Open PO</th>
+              <th style="width:11%">Suggested</th>
+              <th style="width:11%">Order qty</th>
+              <th style="width:8%">Status</th>
             </tr>
           </thead>
           <tbody id="tbody-replen"></tbody>
@@ -168,15 +150,16 @@
         <table id="tbl-slow">
           <thead>
             <tr>
-              <th style="width:25%">Item</th>
-              <th style="width:9%">Stock</th>
+              <th style="width:22%">Item</th>
+              <th style="width:9%">Group</th>
+              <th style="width:8%">Stock</th>
               <th style="width:7%">Cover</th>
               <th style="width:7%">Target</th>
               <th style="width:10%">90d rate</th>
               <th style="width:10%">30d rate</th>
               <th style="width:8%">Trend</th>
-              <th style="width:13%">Reason</th>
-              <th style="width:11%">Vendor</th>
+              <th style="width:11%">Reason</th>
+              <th style="width:8%">Vendor</th>
             </tr>
           </thead>
           <tbody id="tbody-slow"></tbody>
@@ -200,12 +183,13 @@
         <table id="tbl-dead">
           <thead>
             <tr>
-              <th style="width:30%">Item</th>
-              <th style="width:11%">Stock</th>
-              <th style="width:13%">Last sale</th>
-              <th style="width:12%">Days inactive</th>
-              <th style="width:12%">90d returns</th>
-              <th style="width:12%">Vendor</th>
+              <th style="width:24%">Item</th>
+              <th style="width:9%">Group</th>
+              <th style="width:9%">Stock</th>
+              <th style="width:12%">Last sale</th>
+              <th style="width:10%">Days inactive</th>
+              <th style="width:10%">90d returns</th>
+              <th style="width:10%">Vendor</th>
             </tr>
           </thead>
           <tbody id="tbody-dead"></tbody>
@@ -236,6 +220,23 @@
     <div id="whs-modal-body"></div>
     <div class="modal-btns">
       <button class="btn-ghost" onclick="document.getElementById('whs-modal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock list export modal -->
+<div class="modal-overlay" id="stock-export-modal" style="display:none">
+  <div class="modal" style="min-width:360px;max-width:480px">
+    <div class="modal-title">Export stock list</div>
+    <p style="margin:0 0 12px;color:var(--text-muted);font-size:13px">Select columns to include. Exports currently visible rows (respecting vendor, filter and search).</p>
+    <div id="stock-export-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-bottom:16px"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <button class="btn-ghost" style="font-size:12px;padding:3px 8px" onclick="stockExportSelectAll(true)">Select all</button>
+      <button class="btn-ghost" style="font-size:12px;padding:3px 8px" onclick="stockExportSelectAll(false)">Clear all</button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="document.getElementById('stock-export-modal').style.display='none'">Cancel</button>
+      <button class="btn-primary" onclick="doStockListExport()">Export Excel</button>
     </div>
   </div>
 </div>
