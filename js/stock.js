@@ -426,7 +426,10 @@ window.clearFilters = function() {
   document.getElementById('filter-select').value = 'needs';
   document.getElementById('replen-search').value = '';
   document.getElementById('target-override').value = '';
-  document.getElementById('target-override-wrap').style.display = 'none';
+  var dop = document.getElementById('deduct-open-po');
+  if (dop) dop.checked = false;
+  var iw = document.getElementById('include-weight');
+  if (iw) iw.checked = false;
   renderReplen();
 };
 
@@ -859,6 +862,126 @@ window.exportDead = function() {
     ].join(','));
   });
   downloadCsv(csvRows.join('\n'), `dead_stock_${site}_${today()}.csv`);
+};
+
+// ── Stock list export (column picker) ──────────────
+var STOCK_EXPORT_COLS = [
+  { key: 'item_name',           label: 'Item name',         default: true  },
+  { key: 'item_code',           label: 'Item code',         default: false },
+  { key: 'grp_name',            label: 'Group',             default: false },
+  { key: 'stock_on_hand',       label: 'Stock (pcs)',       default: true  },
+  { key: 'stock_ctn',           label: 'Stock (ctn)',       default: false },
+  { key: 'cover_days',          label: 'Cover (days)',      default: false },
+  { key: 'daily_rate_90d',      label: 'Daily rate',        default: false },
+  { key: 'trend_pct',           label: 'Trend %',           default: false },
+  { key: 'open_po_qty',         label: 'Open PO qty',       default: false },
+  { key: 'last_purchase_price', label: 'Last price',        default: false },
+  { key: 'suggest',             label: 'Suggested qty',     default: false },
+  { key: 'weight_kg',           label: 'Weight/unit (kg)',  default: false },
+  { key: 'vendor_name',         label: 'Vendor',            default: false },
+  { key: 'status',              label: 'Status',            default: false },
+];
+var STOCK_EXPORT_LS_KEY = 'stockExportCols_v1';
+
+function stockExportGetSaved() {
+  try { var s = localStorage.getItem(STOCK_EXPORT_LS_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+}
+function stockExportSave(selected) {
+  try { localStorage.setItem(STOCK_EXPORT_LS_KEY, JSON.stringify(selected)); } catch(e) {}
+}
+
+window.openStockListExport = function() {
+  var saved = stockExportGetSaved();
+  var container = document.getElementById('stock-export-cols');
+  container.innerHTML = '';
+  STOCK_EXPORT_COLS.forEach(function(col) {
+    var checked = saved ? saved.indexOf(col.key) !== -1 : col.default;
+    var lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer';
+    lbl.innerHTML = '<input type="checkbox" name="sec" value="' + col.key + '"' + (checked ? ' checked' : '') + '> ' + col.label;
+    container.appendChild(lbl);
+  });
+  document.getElementById('stock-export-modal').style.display = 'flex';
+};
+
+window.stockExportSelectAll = function(state) {
+  document.querySelectorAll('#stock-export-cols input[type=checkbox]').forEach(function(cb) { cb.checked = state; });
+};
+
+window.doStockListExport = function() {
+  var selected = [];
+  document.querySelectorAll('#stock-export-cols input[type=checkbox]:checked').forEach(function(cb) { selected.push(cb.value); });
+  if (selected.length === 0) { alert('Please select at least one column.'); return; }
+  stockExportSave(selected);
+  document.getElementById('stock-export-modal').style.display = 'none';
+
+  var colDefs = STOCK_EXPORT_COLS.filter(function(c) { return selected.indexOf(c.key) !== -1; });
+
+  // Get current filters
+  var vendor = (document.getElementById('vendor-select').value || '').trim();
+  var filter = document.getElementById('filter-select').value;
+  var search = (document.getElementById('replen-search').value || '').toLowerCase().trim();
+  var overrideInput = document.getElementById('target-override');
+  var targetDaysOverride = (overrideInput && overrideInput.value) ? parseFloat(overrideInput.value) : null;
+  var deductOpenPo = document.getElementById('deduct-open-po') && document.getElementById('deduct-open-po').checked;
+  var rateMethod = document.getElementById('rate-method') ? document.getElementById('rate-method').value : 'avg';
+
+  function computeSuggestExport(r) {
+    var etd  = targetDaysOverride || r.target_days || 21;
+    var rate = rateMethod === 'weighted' ? weightedDailyRate(r) : (r.daily_rate_90d || 0);
+    var stock = r.stock_on_hand != null ? r.stock_on_hand : 0;
+    if (rate > 0) return Math.max(0, Math.round((etd * rate) - stock - (deductOpenPo ? (r.open_po_qty || 0) : 0)));
+    return (stock <= 0 && r.suggest_qty_pcs) ? r.suggest_qty_pcs : 0;
+  }
+
+  var rows = allData.slice();
+  if (vendor) rows = rows.filter(function(r) { return (r.vendor_name || '').trim() === vendor; });
+  if (filter === 'needs') rows = rows.filter(function(r) { return computeSuggestExport(r) > 0; });
+  if (search) rows = rows.filter(function(r) {
+    return (r.item_name || '').toLowerCase().indexOf(search) !== -1 || (r.item_code || '').toLowerCase().indexOf(search) !== -1;
+  });
+  rows.sort(function(a, b) { return (a.item_name || '').toLowerCase().localeCompare((b.item_name || '').toLowerCase()); });
+
+  var dateLabel = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  var vendorLabel = vendor || 'All Vendors';
+
+  var headers = colDefs.map(function(c) { return c.label; });
+  var wsData = [
+    ['FINSBURY TRADING LTD'],
+    ['Stock list – ' + (site || '')],
+    ['Date: ' + dateLabel + '    Vendor: ' + vendorLabel],
+    [],
+    headers
+  ];
+
+  rows.forEach(function(r) {
+    var row = colDefs.map(function(c) {
+      switch(c.key) {
+        case 'stock_ctn':          return (r.stock_on_hand != null && r.pcs_per_ctn) ? parseFloat((r.stock_on_hand / r.pcs_per_ctn).toFixed(2)) : '';
+        case 'suggest':            var s = computeSuggestExport(r); return s > 0 ? s : '';
+        case 'trend_pct':          return r.trend_pct != null ? parseFloat(r.trend_pct.toFixed(1)) : '';
+        case 'daily_rate_90d':     return r.daily_rate_90d != null ? parseFloat(r.daily_rate_90d.toFixed(2)) : '';
+        case 'cover_days':         return r.cover_days != null ? parseFloat(r.cover_days.toFixed(1)) : '';
+        case 'last_purchase_price':return r.last_purchase_price != null ? parseFloat(r.last_purchase_price.toFixed(2)) : '';
+        case 'weight_kg':          return r.weight_kg != null ? parseFloat(r.weight_kg.toFixed(4)) : '';
+        case 'status':             return r.stock_on_hand <= 0 ? 'Out of stock' : (computeSuggestExport(r) > 0 ? 'Order needed' : 'OK');
+        default:                   var v = r[c.key]; return v != null ? v : '';
+      }
+    });
+    wsData.push(row);
+  });
+
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = colDefs.map(function(c) { return c.key === 'item_name' ? { wch:45 } : c.key === 'item_code' ? { wch:18 } : { wch:15 }; });
+  // Bold header row (index 4)
+  colDefs.forEach(function(c, ci) {
+    var addr = XLSX.utils.encode_cell({ r: 4, c: ci });
+    if (ws[addr]) ws[addr].s = { font: { bold: true } };
+  });
+  XLSX.utils.book_append_sheet(wb, ws, 'Stock list');
+  var safeVendor = vendorLabel.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  XLSX.writeFile(wb, 'stock_list_' + (site || '') + '_' + safeVendor + '_' + today() + '.xlsx');
 };
 
 // ── Site switching ─────────────────────────────────
