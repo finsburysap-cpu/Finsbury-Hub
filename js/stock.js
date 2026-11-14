@@ -215,9 +215,8 @@ function populateVendorDropdown() {
 
 window.onVendorChange = function() {
   var vendor = (document.getElementById('vendor-select').value || '').trim();
-  var wrap   = document.getElementById('target-override-wrap');
   var input  = document.getElementById('target-override');
-  if (wrap && input) {
+  if (input) {
     if (vendor) {
       var vendorItems = allData.filter(function(r) {
         return (r.vendor_name || '').trim() === vendor;
@@ -225,10 +224,8 @@ window.onVendorChange = function() {
       var defaultDays = vendorItems.length > 0 && vendorItems[0].target_days
         ? vendorItems[0].target_days : 21;
       input.value = defaultDays;
-      wrap.style.display = 'flex';
     } else {
-      wrap.style.display = 'none';
-      input.value = '';
+      input.value = '';  // back to "auto" placeholder
     }
   }
   renderReplen();
@@ -425,7 +422,7 @@ window.clearFilters = function() {
   document.getElementById('sort-select').value = 'cover';
   document.getElementById('filter-select').value = 'needs';
   document.getElementById('replen-search').value = '';
-  document.getElementById('target-override').value = '';
+  document.getElementById('target-override').value = '';  // back to auto
   var dop = document.getElementById('deduct-open-po');
   if (dop) dop.checked = false;
   var iw = document.getElementById('include-weight');
