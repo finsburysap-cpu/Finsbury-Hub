@@ -59,6 +59,11 @@
       <div class="metric-value amber" id="m-dead">—</div>
       <div class="metric-sub">no sales in 30 days</div>
     </div>
+    <div class="metric-card" id="m-order-tile" style="display:none;border-left:3px solid var(--green,#22c55e)">
+      <div class="metric-label">Order weight</div>
+      <div class="metric-value" id="m-order-weight">0.00 kg</div>
+      <div class="metric-sub"><span id="m-order-items">0 items</span> in order</div>
+    </div>
   </div>
 
   <!-- Tabs -->
@@ -102,7 +107,25 @@
               <option value="weighted">Weighted</option>
             </select>
           </div>
+          <div class="field-inline">
+            <label>Sort</label>
+            <select id="sort-select" onchange="renderReplen()">
+              <option value="cover">Cover days</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
+          <div class="field-inline" id="target-override-wrap" style="display:none">
+            <label>Target days</label>
+            <input type="number" id="target-override" style="width:54px" min="1" max="365" placeholder="21" oninput="renderReplen()">
+          </div>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+            <input type="checkbox" id="deduct-open-po" onchange="renderReplen()"> Deduct open PO
+          </label>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+            <input type="checkbox" id="include-weight"> Include weight
+          </label>
           <button class="btn-sm btn-apply" onclick="renderReplen()">Apply</button>
+          <button class="btn-sm btn-ghost" onclick="clearFilters()">Clear filter</button>
         </div>
         <div class="toolbar-right">
           <span class="order-summary" id="order-summary"></span>
