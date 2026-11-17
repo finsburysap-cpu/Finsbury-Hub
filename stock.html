@@ -84,8 +84,9 @@
 
     <!-- REPLENISHMENT TAB -->
     <div id="view-replen" class="view active">
-      <div class="view-toolbar">
-        <div class="toolbar-left">
+      <div class="view-toolbar" style="flex-wrap:wrap;gap:6px">
+        <!-- Row 1: filters + Apply + Clear -->
+        <div class="toolbar-left" style="flex-wrap:wrap;gap:6px;flex:1 1 100%">
           <div class="field-inline">
             <label>Vendor</label>
             <select id="vendor-select" onchange="onVendorChange()">
@@ -118,20 +119,26 @@
             <label>Cover days</label>
             <input type="number" id="target-override" style="width:54px" min="1" max="365" placeholder="auto" oninput="renderReplen()">
           </div>
-          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="checkbox" id="deduct-open-po" onchange="renderReplen()"> Deduct open PO
-          </label>
-          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="checkbox" id="include-weight"> Include weight
-          </label>
           <button class="btn-sm btn-apply" onclick="renderReplen()">Apply</button>
           <button class="btn-sm" onclick="clearFilters()">Clear filter</button>
         </div>
-        <div class="toolbar-right">
-          <span class="order-summary" id="order-summary"></span>
-          <button class="btn-sm btn-outline" onclick="openStockListExport()">Export stock list</button>
-          <button class="btn-sm" onclick="exportReplen('xlsx')">Export Excel</button>
-          <button class="btn-sm" onclick="exportReplen('pdf')">Export PDF</button>
+        <!-- Row 2: checkboxes + export buttons -->
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;width:100%;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:14px">
+            <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="deduct-open-po" onchange="renderReplen()"> Deduct open PO
+            </label>
+            <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="include-weight"> Include weight
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="order-summary" id="order-summary"></span>
+            <button class="btn-sm btn-outline" onclick="openStockListExport()">Export stock list</button>
+            <button class="btn-sm" onclick="exportReplen('xlsx')">Export Excel</button>
+            <button class="btn-sm" onclick="exportReplen('pdf')">Export PDF</button>
+            <button class="btn-sm" style="color:var(--red,#ef4444);border-color:var(--red,#ef4444)" onclick="clearOrder()">Clear order</button>
+          </div>
         </div>
       </div>
       <div class="note-bar" id="replen-note-bar">Suggested qty is based on 90-day average daily rate. Trend shows how the last 30 days compare to the 90-day average.</div>
